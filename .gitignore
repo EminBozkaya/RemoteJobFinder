@@ -1,0 +1,30 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Rider / VS / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+
+# Test results
+[Tt]est[Rr]esults/
+*.trx
+coverage*.json
+coverage*.xml
+
+# User secrets / env
+*.env
+.env
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (local)
+deploy/.volumes/

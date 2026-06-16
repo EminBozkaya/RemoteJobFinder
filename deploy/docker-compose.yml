@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: jobscanner-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jobscanner
+      POSTGRES_PASSWORD: jobscanner
+      POSTGRES_DB: jobscanner
+    ports:
+      - "5432:5432"
+    volumes:
+      - jobscanner-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobscanner -d jobscanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # redis: Faz 3'te gerekirse acilir (stack'te rezerve; Faz 1-2'de bagimlilik kurulmaz).
+
+volumes:
+  jobscanner-pgdata:

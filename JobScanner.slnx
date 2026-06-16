@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JobScanner.Application/JobScanner.Application.csproj" />
+    <Project Path="src/JobScanner.Domain/JobScanner.Domain.csproj" />
+    <Project Path="src/JobScanner.Infrastructure/JobScanner.Infrastructure.csproj" />
+    <Project Path="src/JobScanner.Worker/JobScanner.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JobScanner.GoldSetTests/JobScanner.GoldSetTests.csproj" />
+    <Project Path="tests/JobScanner.UnitTests/JobScanner.UnitTests.csproj" />
+  </Folder>
+</Solution>
