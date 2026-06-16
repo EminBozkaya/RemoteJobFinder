@@ -13,4 +13,7 @@ public interface IJobRepository
 
     /// <summary>İçerik değişmemişse yalnız LastSeenAt'i günceller (pahalı işi atlar).</summary>
     Task TouchLastSeenAsync(string sourceName, string externalId, DateTimeOffset seenAt, CancellationToken ct);
+
+    /// <summary>Belirtilen tarihten beri görülmeyen aktif ilanları arşivler; arşivlenen sayısını döner.</summary>
+    Task<int> ArchiveStaleAsync(DateTimeOffset notSeenSince, CancellationToken ct);
 }

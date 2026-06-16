@@ -19,4 +19,35 @@ public sealed class UserJobMatch
     public DateTimeOffset? OpenedAt { get; set; }
     public DateTimeOffset? AppliedAt { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
+
+    /// <summary>Kullanıcı kararını verdi (Applied/Dismissed) → yeniden işlenmez.</summary>
+    public bool IsClosed => State is MatchState.Applied or MatchState.Dismissed;
+
+    // --- Durum makinesi (saf geçişler). Etkileşimli tetikleyiciler Faz 3'te (API butonları). ---
+
+    public void Save()
+    {
+        if (State == MatchState.New) State = MatchState.Saved;
+    }
+
+    public void Open(DateTimeOffset now)
+    {
+        if (IsClosed) return;
+        State = MatchState.Opened;
+        OpenedAt ??= now;
+    }
+
+    public void Apply(DateTimeOffset now)
+    {
+        State = MatchState.Applied;
+        AppliedAt ??= now;
+    }
+
+    public void Dismiss() => State = MatchState.Dismissed;
+
+    /// <summary>İlan arşivlendiğinde açık eşleşme süresi dolar (kullanıcı kararı korunur).</summary>
+    public void Expire()
+    {
+        if (!IsClosed && State != MatchState.Expired) State = MatchState.Expired;
+    }
 }

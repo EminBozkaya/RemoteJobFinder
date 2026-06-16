@@ -15,11 +15,12 @@ public static class DependencyInjection
     {
         services.Configure<PipelineOptions>(config.GetSection(PipelineOptions.SectionName));
         services.Configure<RuleFilterOptions>(config.GetSection(RuleFilterOptions.SectionName));
+        services.Configure<DeciderOptions>(config.GetSection(DeciderOptions.SectionName));
 
         // Saf is mantigi (yan etkisiz)
         services.AddSingleton<IRuleFilter, RuleFilter>();
-        services.AddSingleton<IEligibilityDecider, StubEligibilityDecider>(); // Faz 1 stub
-        services.AddSingleton<IScoringEngine, StubScoringEngine>();           // Faz 1 stub
+        services.AddSingleton<IEligibilityDecider, EligibilityDecider>();
+        services.AddSingleton<IScoringEngine, ScoringEngine>();
 
         services.AddScoped<JobScanPipeline>();
         return services;

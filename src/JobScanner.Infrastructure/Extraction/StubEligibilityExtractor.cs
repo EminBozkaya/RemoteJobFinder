@@ -1,24 +1,22 @@
 using JobScanner.Application.Abstractions;
-using JobScanner.Application.Pipeline;
 using JobScanner.Domain.Eligibility;
 using JobScanner.Domain.Enums;
 using JobScanner.Domain.Jobs;
-using Microsoft.Extensions.Options;
 
 namespace JobScanner.Infrastructure.Extraction;
 
 /// <summary>
-/// Faz 1 STUB: LLM yok. Bos/Unknown gercekler dondurur (Confidence 0). Gercek LLM tabanli
-/// IEligibilityExtractor (IChatClient) Faz 2'de gelir.
+/// LLM kapalıyken (Llm:Enabled=false) kullanılır: boş/Unknown gerçekler (Confidence 0).
+/// Decider bunları düşük güven nedeniyle Uncertain işaretler.
 /// </summary>
 public sealed class StubEligibilityExtractor : IEligibilityExtractor
 {
-    private readonly PipelineOptions _options;
+    private readonly IExtractionVersion _version;
     private readonly TimeProvider _clock;
 
-    public StubEligibilityExtractor(IOptions<PipelineOptions> options, TimeProvider clock)
+    public StubEligibilityExtractor(IExtractionVersion version, TimeProvider clock)
     {
-        _options = options.Value;
+        _version = version;
         _clock = clock;
     }
 
@@ -26,8 +24,8 @@ public sealed class StubEligibilityExtractor : IEligibilityExtractor
     {
         var facts = new EligibilityFacts(
             JobId: job.Id,
-            PromptVersion: _options.PromptVersion,
-            ModelVersion: _options.ModelVersion,
+            PromptVersion: _version.PromptVersion,
+            ModelVersion: _version.ModelVersion,
             VersionHash: job.VersionHash,
             RequiresWorkAuth: null,
             AllowedCountries: null,

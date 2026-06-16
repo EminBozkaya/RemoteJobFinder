@@ -58,4 +58,32 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
 
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<int> ExpireOpenMatchesForArchivedJobsAsync(CancellationToken ct)
+    {
+        var archivedJobIds = _db.JobPostings
+            .Where(j => j.Status == JobStatus.Archived)
+            .Select(j => j.Id);
+
+        return await _db.UserJobMatches
+            .Where(m => archivedJobIds.Contains(m.JobId) &&
+                        (m.State == MatchState.New || m.State == MatchState.Saved || m.State == MatchState.Opened))
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.State, MatchState.Expired), ct);
+    }
+
+    public async Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, CancellationToken ct) =>
+        await (
+            from m in _db.UserJobMatches.AsNoTracking()
+            join j in _db.JobPostings.AsNoTracking() on m.JobId equals j.Id
+            where (profileId == null || m.ProfileId == profileId)
+                  && m.Score >= minScore
+                  && m.State != MatchState.Expired
+                  && m.State != MatchState.Dismissed
+            orderby m.Score descending, j.PostedAt descending
+            select new MatchView(
+                m.ProfileId, m.JobId, j.Title, j.Company, j.Url, j.ApplyUrl,
+                m.Score, m.Decision.ToString(), m.State.ToString(), j.PostedAt,
+                m.ScoreBreakdownJson, m.DecisionReasonsJson))
+            .Take(take)
+            .ToListAsync(ct);
 }

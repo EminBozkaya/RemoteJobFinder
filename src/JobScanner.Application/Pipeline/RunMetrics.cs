@@ -8,4 +8,7 @@ public sealed record RunMetrics(
     int Eliminated,
     int Extracted,
     int Matches,
-    int SourceErrors);
+    int SourceErrors,
+    int ExtractionErrors = 0,
+    int ArchivedJobs = 0,
+    int ExpiredMatches = 0);

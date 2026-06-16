@@ -8,7 +8,11 @@ Türkiye'de yaşayan bir B2B contractor için **tam remote** iş ilanlarını AP
 gerçekten başvurulabilir olanları eleyip puanlayan bir sistem. Detay: `docs/PLAN.md`.
 
 ## Şu anki faz
-**Faz 1 — Çekirdek.** Kapsam ve sıra: `docs/PLAN.md` §14; bitti kriteri: §15. Faz 1'de **LLM yok, UI yok**.
+**Faz 2 — Zekâ + durum.** Faz 1 (çekirdek) tamam. Faz 2: gerçek LLM `IEligibilityExtractor`
+(Ollama default, `IChatClient` ile sağlayıcı-bağımsız, cache + gold-set), saf C#
+`IEligibilityDecider` + `ScoringEngine`, `UserJobMatch` durum makinesi + ilan yaşam döngüsü
+(arşiv/Expired), ve **minimal read-only HTTP endpoint** (`JobScanner.Api`, `GET /matches`).
+React SPA + auth + apply/dismiss hâlâ **Faz 3** (kapsam dışı). Kapsam: `docs/PLAN.md` §13.
 
 ## Mutlak kurallar (ASLA ihlal etme)
 - **Clean Architecture**, bağımlılık içe doğru: `Worker/Api → Infrastructure → Application → Domain`. Domain'in dış bağımlılığı yoktur.

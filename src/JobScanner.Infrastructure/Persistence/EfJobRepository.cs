@@ -1,4 +1,5 @@
 using JobScanner.Application.Abstractions;
+using JobScanner.Domain.Enums;
 using JobScanner.Domain.Jobs;
 using Microsoft.EntityFrameworkCore;
 
@@ -50,4 +51,9 @@ public sealed class EfJobRepository : IJobRepository
         await _db.JobPostings
             .Where(x => x.SourceName == sourceName && x.ExternalId == externalId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSeenAt, seenAt), ct);
+
+    public async Task<int> ArchiveStaleAsync(DateTimeOffset notSeenSince, CancellationToken ct) =>
+        await _db.JobPostings
+            .Where(x => x.Status == JobStatus.Active && x.LastSeenAt < notSeenSince)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, JobStatus.Archived), ct);
 }

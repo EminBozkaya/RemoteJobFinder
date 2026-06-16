@@ -16,4 +16,10 @@ public interface IUserMatchRepository
         Decision decision,
         string decisionReasonsJson,
         CancellationToken ct);
+
+    /// <summary>Arşivlenmiş ilanlara ait açık eşleşmeleri (New/Saved/Opened) Expired yapar; sayısını döner.</summary>
+    Task<int> ExpireOpenMatchesForArchivedJobsAsync(CancellationToken ct);
+
+    /// <summary>Okuma: skora göre sıralı eşleşmeler (Expired/Dismissed hariç).</summary>
+    Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, CancellationToken ct);
 }

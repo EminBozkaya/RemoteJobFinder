@@ -11,9 +11,11 @@ public sealed class PipelineOptions
     /// <summary>true ise tek tarama yapip cikar (dedup/kabul testi icin); false ise zamanlanmis dongu.</summary>
     public bool RunOnce { get; init; } = false;
 
-    /// <summary>Fact extraction sürüm anahtarı (cache anahtarının parçası).</summary>
-    public string PromptVersion { get; init; } = "v1";
-    public string ModelVersion { get; init; } = "stub";
+    /// <summary>Bir run'da yapılacak azami LLM extraction çağrısı (token/maliyet koruması).</summary>
+    public int MaxLlmCallsPerRun { get; init; } = 50;
+
+    /// <summary>Bu kadar gündür görülmeyen ilan arşivlenir; açık eşleşmeleri Expired olur.</summary>
+    public int StaleAfterDays { get; init; } = 30;
 
     /// <summary>Faz 1: tek seed source için sorgu parametreleri.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
