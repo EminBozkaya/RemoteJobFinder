@@ -28,4 +28,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="JobScanner.UnitTests" />
+  </ItemGroup>
+
 </Project>

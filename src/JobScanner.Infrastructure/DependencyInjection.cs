@@ -5,6 +5,8 @@ using JobScanner.Infrastructure.Llm;
 using JobScanner.Infrastructure.Normalization;
 using JobScanner.Infrastructure.Persistence;
 using JobScanner.Infrastructure.Sources.Jobicy;
+using JobScanner.Infrastructure.Sources.RemoteOk;
+using JobScanner.Infrastructure.Sources.WeWorkRemotely;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +18,9 @@ namespace JobScanner.Infrastructure;
 /// <summary>Infrastructure katmani DI kaydi (Worker composition root'tan cagrilir).</summary>
 public static class DependencyInjection
 {
+    private const string UserAgent = "JobScanner/1.0 (+https://github.com/EminBozkaya/RemoteJobFinder)";
+
+
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -40,9 +45,24 @@ public static class DependencyInjection
 
         // Kaynaklar (IJobSource) — toleransli HttpClient + Polly tabanli direnc
         services.Configure<JobicyOptions>(config.GetSection(JobicyOptions.SectionName));
+        services.Configure<RemoteOkOptions>(config.GetSection(RemoteOkOptions.SectionName));
+        services.Configure<WeWorkRemotelyOptions>(config.GetSection(WeWorkRemotelyOptions.SectionName));
         AddJobicy(services, config);
+        AddRemoteOk(services, config);
+        AddWeWorkRemotely(services, config);
 
         return services;
+    }
+
+    /// <summary>Tüm IJobSource HttpClient'ları için ortak ayar: UA + timeout + Polly resilience.</summary>
+    private static void AddResilientSourceClient<TSource>(IServiceCollection services) where TSource : class
+    {
+        services.AddHttpClient<TSource>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+            })
+            .AddStandardResilienceHandler();
     }
 
     private static void AddLlm(IServiceCollection services, IConfiguration config)
@@ -65,16 +85,28 @@ public static class DependencyInjection
 
     private static void AddJobicy(IServiceCollection services, IConfiguration config)
     {
-        var jobicy = config.GetSection(JobicyOptions.SectionName).Get<JobicyOptions>() ?? new JobicyOptions();
-        if (!jobicy.Enabled) return;
+        var opts = config.GetSection(JobicyOptions.SectionName).Get<JobicyOptions>() ?? new JobicyOptions();
+        if (!opts.Enabled) return;
 
-        services.AddHttpClient<JobicyJobSource>(client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(30);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("JobScanner/1.0 (+https://github.com)");
-            })
-            .AddStandardResilienceHandler(); // Polly v8: retry + circuit breaker + timeout
-
+        AddResilientSourceClient<JobicyJobSource>(services);
         services.AddTransient<IJobSource>(sp => sp.GetRequiredService<JobicyJobSource>());
+    }
+
+    private static void AddRemoteOk(IServiceCollection services, IConfiguration config)
+    {
+        var opts = config.GetSection(RemoteOkOptions.SectionName).Get<RemoteOkOptions>() ?? new RemoteOkOptions();
+        if (!opts.Enabled) return;
+
+        AddResilientSourceClient<RemoteOkJobSource>(services);
+        services.AddTransient<IJobSource>(sp => sp.GetRequiredService<RemoteOkJobSource>());
+    }
+
+    private static void AddWeWorkRemotely(IServiceCollection services, IConfiguration config)
+    {
+        var opts = config.GetSection(WeWorkRemotelyOptions.SectionName).Get<WeWorkRemotelyOptions>() ?? new WeWorkRemotelyOptions();
+        if (!opts.Enabled) return;
+
+        AddResilientSourceClient<WeWorkRemotelyJobSource>(services);
+        services.AddTransient<IJobSource>(sp => sp.GetRequiredService<WeWorkRemotelyJobSource>());
     }
 }
