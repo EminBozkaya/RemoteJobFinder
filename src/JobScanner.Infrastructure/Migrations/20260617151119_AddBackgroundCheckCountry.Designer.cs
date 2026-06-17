@@ -3,6 +3,7 @@ using System;
 using JobScanner.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JobScanner.Infrastructure.Migrations
 {
     [DbContext(typeof(JobScannerDbContext))]
-    partial class JobScannerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260617151119_AddBackgroundCheckCountry")]
+    partial class AddBackgroundCheckCountry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -13,6 +13,8 @@ public sealed record EligibilityFacts(
     string ModelVersion,
     string VersionHash,
     bool? RequiresWorkAuth,
+    bool? RequiresRelocation,                   // açıkça taşınma/onsite'a geçiş şartı (TR'den çalışmayı engeller)
+    string? BackgroundCheckCountry,             // belirli bir ülkeye ait adli sicil/clearance şartı (ör. "UK","US"); genel/yoksa null
     IReadOnlyList<string>? AllowedCountries,
     bool? RequiresCitizenship,
     bool? AllowsB2BContractor,

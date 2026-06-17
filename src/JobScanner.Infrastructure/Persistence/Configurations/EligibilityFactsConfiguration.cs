@@ -17,6 +17,7 @@ internal sealed class EligibilityFactsConfiguration : IEntityTypeConfiguration<E
         b.Property(x => x.ModelVersion).HasMaxLength(64);
         b.Property(x => x.VersionHash).HasMaxLength(64);
         b.Property(x => x.EngagementType).HasConversion<string>().HasMaxLength(32);
+        b.Property(x => x.BackgroundCheckCountry).HasMaxLength(64);
         b.Property(x => x.EorPlatform).HasMaxLength(128);
         b.Property(x => x.DataBoundary).HasMaxLength(64);
         b.Property(x => x.TimezoneRequirementRaw).HasMaxLength(256);

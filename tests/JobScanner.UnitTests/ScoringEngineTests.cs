@@ -69,6 +69,23 @@ public sealed class ScoringEngineTests
     }
 
     [Fact]
+    public void Eor_ranks_above_b2b_above_neutral()
+    {
+        var job = TestFactory.Job(postedAt: Now);
+        var profile = TestFactory.Profile();
+
+        double Eng(JobScanner.Domain.Eligibility.EligibilityFacts f) =>
+            _sut.Score(job, f, profile).Breakdown.Single(b => b.Criterion.StartsWith("EngagementFit")).Contribution;
+
+        var eor = Eng(TestFactory.Facts(mentionsEor: true));
+        var b2b = Eng(TestFactory.Facts(engagementType: Domain.Enums.EngagementType.B2B));
+        var neutral = Eng(TestFactory.Facts(engagementType: Domain.Enums.EngagementType.Employee));
+
+        Assert.True(eor > b2b, $"eor={eor} b2b={b2b}");
+        Assert.True(b2b > neutral, $"b2b={b2b} neutral={neutral}");
+    }
+
+    [Fact]
     public void Final_score_is_clamped_between_0_and_10()
     {
         var job = TestFactory.Job(title: "Senior .NET C# Developer", description: "react azure aws", postedAt: Now);

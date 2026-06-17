@@ -1,5 +1,6 @@
 using JobScanner.Application.Abstractions;
 using JobScanner.Domain.Eligibility;
+using JobScanner.Domain.Enums;
 using JobScanner.Domain.Jobs;
 using JobScanner.Domain.Users;
 
@@ -25,8 +26,9 @@ public sealed class ScoringEngine : IScoringEngine
         var matchPercent = MatchPercent(job, profile, out var matchDetail);
         var timezoneFit = TimezoneFit(facts.TimezoneRequirementRaw, profile.TimezoneToleranceHours, out var tzDetail);
         var freshness = Freshness(job.PostedAt ?? job.FirstSeenAt);
+        var engagementFit = EngagementFit(facts, out var engDetail);
 
-        var raw = matchPercent * 5.0 + timezoneFit + freshness;
+        var raw = matchPercent * 5.0 + timezoneFit + freshness + engagementFit;
         var final = Math.Clamp(raw, 0, 10);
 
         var breakdown = new[]
@@ -34,9 +36,30 @@ public sealed class ScoringEngine : IScoringEngine
             new ScoreContribution($"MatchPercent ({matchDetail})", Math.Round(matchPercent * 5.0, 2)),
             new ScoreContribution($"TimezoneFit ({tzDetail})", Math.Round(timezoneFit, 2)),
             new ScoreContribution("Freshness", Math.Round(freshness, 2)),
+            new ScoreContribution($"EngagementFit ({engDetail})", Math.Round(engagementFit, 2)),
         };
 
         return new JobScore(Math.Round(final, 2), breakdown);
+    }
+
+    /// <summary>
+    /// 0-1: çalışma türü tercihi. Kullanıcının şirketi yok → EOR (TR'de yasal çalışan) en değerli;
+    /// B2B/contractor uygun ama şirket/fatura masrafı gerektirir; diğerleri nötr.
+    /// </summary>
+    private static double EngagementFit(EligibilityFacts facts, out string detail)
+    {
+        if (facts.MentionsEor == true || facts.EngagementType == EngagementType.EmployeeViaEor)
+        {
+            detail = "EOR (ideal)";
+            return 1.0;
+        }
+        if (facts.EngagementType is EngagementType.Contractor or EngagementType.B2B or EngagementType.Freelance)
+        {
+            detail = $"{facts.EngagementType} (şirket gerekir)";
+            return 0.4;
+        }
+        detail = "nötr";
+        return 0.0;
     }
 
     /// <summary>must/nice/negative keyword eşleşmesi (başlık ağırlıklı), [0,1].</summary>

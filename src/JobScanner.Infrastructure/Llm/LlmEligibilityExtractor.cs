@@ -87,6 +87,8 @@ public sealed class LlmEligibilityExtractor : IEligibilityExtractor
             ModelVersion: _version.ModelVersion,
             VersionHash: job.VersionHash,
             RequiresWorkAuth: r.RequiresWorkAuth,
+            RequiresRelocation: r.RequiresRelocation,
+            BackgroundCheckCountry: NullIfBlank(r.BackgroundCheckCountry),
             AllowedCountries: NormalizeCountries(r.AllowedCountries),
             RequiresCitizenship: r.RequiresCitizenship,
             AllowsB2BContractor: r.AllowsB2BContractor,

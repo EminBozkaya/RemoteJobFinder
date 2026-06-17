@@ -28,6 +28,8 @@ public sealed class StubEligibilityExtractor : IEligibilityExtractor
             ModelVersion: _version.ModelVersion,
             VersionHash: job.VersionHash,
             RequiresWorkAuth: null,
+            RequiresRelocation: null,
+            BackgroundCheckCountry: null,
             AllowedCountries: null,
             RequiresCitizenship: null,
             AllowsB2BContractor: null,

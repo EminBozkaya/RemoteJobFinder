@@ -5,6 +5,8 @@ namespace JobScanner.Infrastructure.Llm;
 /// <summary>LLM'in döndürdüğü ham JSON gerçekleri. Toleranslı parse edilir.</summary>
 internal sealed record ExtractionResult(
     [property: JsonPropertyName("requiresWorkAuth")] bool? RequiresWorkAuth,
+    [property: JsonPropertyName("requiresRelocation")] bool? RequiresRelocation,
+    [property: JsonPropertyName("backgroundCheckCountry")] string? BackgroundCheckCountry,
     [property: JsonPropertyName("allowedCountries")] List<string>? AllowedCountries,
     [property: JsonPropertyName("requiresCitizenship")] bool? RequiresCitizenship,
     [property: JsonPropertyName("allowsB2BContractor")] bool? AllowsB2BContractor,

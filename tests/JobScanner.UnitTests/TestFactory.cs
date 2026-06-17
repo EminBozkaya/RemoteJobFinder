@@ -10,6 +10,8 @@ internal static class TestFactory
 {
     public static EligibilityFacts Facts(
         bool? requiresWorkAuth = null,
+        bool? requiresRelocation = null,
+        string? backgroundCheckCountry = null,
         IReadOnlyList<string>? allowedCountries = null,
         bool? requiresCitizenship = null,
         bool? allowsB2BContractor = null,
@@ -22,7 +24,9 @@ internal static class TestFactory
         double confidence = 0.9) =>
         new(
             JobId: 1, PromptVersion: "v1", ModelVersion: "test", VersionHash: "h",
-            RequiresWorkAuth: requiresWorkAuth, AllowedCountries: allowedCountries,
+            RequiresWorkAuth: requiresWorkAuth, RequiresRelocation: requiresRelocation,
+            BackgroundCheckCountry: backgroundCheckCountry,
+            AllowedCountries: allowedCountries,
             RequiresCitizenship: requiresCitizenship, AllowsB2BContractor: allowsB2BContractor,
             EngagementType: engagementType, MentionsEor: mentionsEor, EorPlatform: eorPlatform,
             DataBoundary: dataBoundary, TimezoneRequirementRaw: timezoneRequirementRaw,

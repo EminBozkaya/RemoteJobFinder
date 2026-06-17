@@ -71,12 +71,46 @@ public sealed class EligibilityDeciderTests
     }
 
     [Fact]
-    public void Job_rejecting_b2b_when_profile_wants_it_is_uncertain()
+    public void Engagement_type_is_not_an_eligibility_gate()
     {
+        // Çalışma türü artık eleme/Uncertain üretmez (B2B şart değil; employee/EOR de uygun).
         var (d, _) = Sut.Decide(
-            TestFactory.Facts(allowsB2BContractor: false),
+            TestFactory.Facts(allowsB2BContractor: false, engagementType: Domain.Enums.EngagementType.Employee),
             TestFactory.Profile(contractTypes: ["b2b"]));
-        Assert.Equal(Decision.Uncertain, d);
+        Assert.Equal(Decision.Eligible, d);
+    }
+
+    [Fact]
+    public void Relocation_requirement_is_ineligible()
+    {
+        var (d, _) = Sut.Decide(TestFactory.Facts(requiresRelocation: true), TestFactory.Profile());
+        Assert.Equal(Decision.Ineligible, d);
+    }
+
+    [Fact]
+    public void Foreign_country_background_check_is_ineligible()
+    {
+        var (d, _) = Sut.Decide(TestFactory.Facts(backgroundCheckCountry: "UK"), TestFactory.Profile());
+        Assert.Equal(Decision.Ineligible, d);
+    }
+
+    [Fact]
+    public void Own_country_or_generic_background_check_is_eligible()
+    {
+        var own = Sut.Decide(TestFactory.Facts(backgroundCheckCountry: "Turkey"), TestFactory.Profile());
+        var generic = Sut.Decide(TestFactory.Facts(backgroundCheckCountry: null), TestFactory.Profile());
+        Assert.Equal(Decision.Eligible, own.Decision);
+        Assert.Equal(Decision.Eligible, generic.Decision);
+    }
+
+    [Fact]
+    public void Eor_is_eligible_and_flagged_as_legal_path()
+    {
+        var (d, reasons) = Sut.Decide(
+            TestFactory.Facts(mentionsEor: true, eorPlatform: "Deel", engagementType: EngagementType.EmployeeViaEor),
+            TestFactory.Profile());
+        Assert.Equal(Decision.Eligible, d);
+        Assert.Contains(reasons, r => r.Contains("EOR"));
     }
 
     [Fact]
