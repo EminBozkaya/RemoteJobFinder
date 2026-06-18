@@ -1,0 +1,51 @@
+# actions/labeler@v5 — PR diff'indeki dosya kalıplarına göre otomatik etiket atar.
+# Etiketin GitHub'da önceden var olması gerekir; yoksa o etiket sessizce atlanır.
+# Önerilen etiket renkleri (örnek):
+#   frontend       #0E8A16 (yeşil)
+#   backend-api    #1D76DB (mavi)
+#   backend-worker #0052CC (koyu mavi)
+#   backend-core   #B60205 (kırmızı, kritik mimari)
+#   tests          #FBCA04 (sarı)
+#   ci             #C5DEF5 (açık mavi)
+#   docs           #D4C5F9 (mor)
+#   migrations     #E99695 (pembe — DB değişikliği)
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: ['src/JobScanner.Web/**']
+
+backend-api:
+  - changed-files:
+      - any-glob-to-any-file: ['src/JobScanner.Api/**']
+
+backend-worker:
+  - changed-files:
+      - any-glob-to-any-file: ['src/JobScanner.Worker/**']
+
+backend-core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/JobScanner.Domain/**'
+          - 'src/JobScanner.Application/**'
+          - 'src/JobScanner.Infrastructure/**'
+
+migrations:
+  - changed-files:
+      - any-glob-to-any-file: ['src/JobScanner.Infrastructure/Migrations/**']
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ['tests/**', 'src/JobScanner.Web/src/**/*.test.ts*']
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'release-please-config.json'
+          - '.release-please-manifest.json'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**'

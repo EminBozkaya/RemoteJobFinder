@@ -198,6 +198,32 @@ dotnet test
 
 ---
 
+## Katkıda bulunma & sürümleme
+
+Repo **Conventional Commits** + **Release-Please** kullanır. Commit mesajları:
+
+```
+feat:  yeni özellik
+fix:   bug onarımı
+docs:  doküman
+chore: bakım (deps, config)
+ci:    CI/CD
+refactor: yapı değişikliği
+perf:  performans
+test:  test
+```
+
+`feat!:` veya `BREAKING CHANGE:` notu major bump yapar.
+
+`main` branch'ine push edilince [release-please workflow'u](.github/workflows/release-please.yml)
+otomatik bir "Release vX.Y.Z" PR'ı açar/günceller. PR merge edilince git tag + GitHub release +
+[CHANGELOG.md](CHANGELOG.md) güncellenmesi kendiliğinden olur.
+
+PR'lar [auto-labeler](.github/labeler.yml) ile dosya değişikliklerine göre etiketlenir
+(`frontend`, `backend-core`, `migrations`, `docs`, vb).
+
+---
+
 ## Komutlar (cheat sheet)
 
 ```bash
