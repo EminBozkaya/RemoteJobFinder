@@ -26,6 +26,7 @@ export async function fetchMatches(q: MatchesQuery = {}): Promise<MatchView[]> {
   if (q.profileId != null) params.set('profileId', String(q.profileId))
   if (q.minScore != null) params.set('minScore', String(q.minScore))
   if (q.take != null) params.set('take', String(q.take))
+  if (q.source) params.set('source', q.source)
   const qs = params.toString()
   return http<MatchView[]>(`/matches${qs ? `?${qs}` : ''}`)
 }

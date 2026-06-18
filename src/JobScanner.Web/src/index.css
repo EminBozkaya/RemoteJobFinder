@@ -12,14 +12,23 @@
   --color-danger: oklch(0.60 0.22 25);
 }
 
+/* Tema: html[data-theme] manual override (ThemeToggle) yoksa prefers-color-scheme. */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  html:not([data-theme="light"]) {
     --color-bg: oklch(0.18 0.02 264);
     --color-fg: oklch(0.96 0.01 264);
     --color-muted: oklch(0.65 0.02 264);
     --color-border: oklch(0.30 0.02 264);
     --color-card: oklch(0.22 0.02 264);
   }
+}
+
+html[data-theme="dark"] {
+  --color-bg: oklch(0.18 0.02 264);
+  --color-fg: oklch(0.96 0.01 264);
+  --color-muted: oklch(0.65 0.02 264);
+  --color-border: oklch(0.30 0.02 264);
+  --color-card: oklch(0.22 0.02 264);
 }
 
 html, body, #root {

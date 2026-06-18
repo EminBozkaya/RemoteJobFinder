@@ -67,9 +67,12 @@ app.MapGet("/matches", async (
     long? profileId,
     double? minScore,
     int? take,
+    string? source,
     CancellationToken ct) =>
 {
-    var result = await matches.GetRankedAsync(profileId, minScore ?? 0, Math.Clamp(take ?? 50, 1, 200), ct);
+    var result = await matches.GetRankedAsync(
+        profileId, minScore ?? 0, Math.Clamp(take ?? 50, 1, 200),
+        string.IsNullOrWhiteSpace(source) ? null : source, ct);
     return Results.Ok(result);
 });
 

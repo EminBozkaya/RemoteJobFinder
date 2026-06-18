@@ -71,7 +71,7 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.State, MatchState.Expired), ct);
     }
 
-    public async Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, CancellationToken ct) =>
+    public async Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, string? source, CancellationToken ct) =>
         await (
             from m in _db.UserJobMatches.AsNoTracking()
             join j in _db.JobPostings.AsNoTracking() on m.JobId equals j.Id
@@ -79,6 +79,7 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
                   && m.Score >= minScore
                   && m.State != MatchState.Expired
                   && m.State != MatchState.Dismissed
+                  && (source == null || j.SourceName == source)
             orderby m.Score descending, j.PostedAt descending
             select new MatchView(
                 m.ProfileId, m.JobId, j.Title, j.Company, j.Url, j.ApplyUrl,

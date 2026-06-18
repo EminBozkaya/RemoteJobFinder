@@ -25,4 +25,8 @@ export type MatchesQuery = {
   profileId?: number
   minScore?: number
   take?: number
+  source?: string
 }
+
+export const KNOWN_SOURCES = ['Jobicy', 'RemoteOK', 'WeWorkRemotely'] as const
+export type KnownSource = typeof KNOWN_SOURCES[number]
