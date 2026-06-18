@@ -86,4 +86,16 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
                 m.ScoreBreakdownJson, m.DecisionReasonsJson))
             .Take(take)
             .ToListAsync(ct);
+
+    public async Task<bool> WithMatchAsync(long profileId, long jobId, Action<UserJobMatch> mutate, CancellationToken ct)
+    {
+        var match = await _db.UserJobMatches
+            .FirstOrDefaultAsync(m => m.ProfileId == profileId && m.JobId == jobId, ct);
+
+        if (match is null) return false;
+
+        mutate(match);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
 }

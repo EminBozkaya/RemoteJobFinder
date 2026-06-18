@@ -1,4 +1,5 @@
 using JobScanner.Domain.Enums;
+using JobScanner.Domain.Matching;
 
 namespace JobScanner.Application.Abstractions;
 
@@ -22,4 +23,11 @@ public interface IUserMatchRepository
 
     /// <summary>Okuma: skora göre sıralı eşleşmeler (Expired/Dismissed hariç).</summary>
     Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, CancellationToken ct);
+
+    /// <summary>
+    /// Eşleşmeyi yükler, durum makinesi mutasyonunu uygular ve kaydeder. Saf C# domain
+    /// metodu (Save/Open/Apply/Dismiss) caller tarafından aktarılır — repo'nun durum
+    /// makinesinden haberi olmaz. true: bulundu+kaydedildi; false: eşleşme yok.
+    /// </summary>
+    Task<bool> WithMatchAsync(long profileId, long jobId, Action<UserJobMatch> mutate, CancellationToken ct);
 }
