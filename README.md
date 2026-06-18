@@ -142,8 +142,12 @@ eklemek için ilgili `Microsoft.Extensions.AI` paketi + bir case yeterli.
 
 ### Kaynaklar
 
-`Sources:Jobicy`, `Sources:RemoteOK`, `Sources:WeWorkRemotely` — her biri `Enabled`
-flag'i ile bağımsız açılır/kapanır.
+5 IJobSource adaptörü, her biri bağımsız `Enabled` flag'i ile:
+- **Jobicy** — REST JSON, `tag` per-tag iteration, geo opsiyonel
+- **RemoteOK** — REST JSON tek çağrı, client-side tag filtre
+- **WeWorkRemotely** — RSS 2.0
+- **Remotive** — REST JSON, `search` per-tag iteration; 24h delayed data (ToS)
+- **Arbeitnow** — REST JSON, EU-friendly, `remote=true` + tag client-side filtre; `visa_sponsorship` flag çıkarılır
 
 ---
 
@@ -192,6 +196,7 @@ dotnet test
 | 2 kalibrasyon | TR-merkezli uygunluk (EOR öncelikli, relocation/foreign-bg eleyici) | ✅ |
 | 3.1 — Mutasyonlar | API POST endpoint'leri (save/open/apply/dismiss) | ✅ |
 | 3.2 — Kaynaklar | RemoteOK + We Work Remotely | ✅ |
+| 3.5 — Kaynak genişletme | Remotive + Arbeitnow | ✅ |
 | 3.4 — SPA | React + Tailwind + shadcn | ✅ |
 | 3 — Ghost-job & Liveness | Block G legitimacy sinyalleri + HEAD liveness gate | ✅ |
 | 4 — Otomasyon | Yüksek skorluya CV + cover letter üretimi | ⏳ |

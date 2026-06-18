@@ -5,8 +5,10 @@ using JobScanner.Infrastructure.Liveness;
 using JobScanner.Infrastructure.Llm;
 using JobScanner.Infrastructure.Normalization;
 using JobScanner.Infrastructure.Persistence;
+using JobScanner.Infrastructure.Sources.Arbeitnow;
 using JobScanner.Infrastructure.Sources.Jobicy;
 using JobScanner.Infrastructure.Sources.RemoteOk;
+using JobScanner.Infrastructure.Sources.Remotive;
 using JobScanner.Infrastructure.Sources.WeWorkRemotely;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -56,9 +58,13 @@ public static class DependencyInjection
         services.Configure<JobicyOptions>(config.GetSection(JobicyOptions.SectionName));
         services.Configure<RemoteOkOptions>(config.GetSection(RemoteOkOptions.SectionName));
         services.Configure<WeWorkRemotelyOptions>(config.GetSection(WeWorkRemotelyOptions.SectionName));
+        services.Configure<RemotiveOptions>(config.GetSection(RemotiveOptions.SectionName));
+        services.Configure<ArbeitnowOptions>(config.GetSection(ArbeitnowOptions.SectionName));
         AddJobicy(services, config);
         AddRemoteOk(services, config);
         AddWeWorkRemotely(services, config);
+        AddRemotive(services, config);
+        AddArbeitnow(services, config);
 
         return services;
     }
@@ -68,10 +74,16 @@ public static class DependencyInjection
     {
         services.AddHttpClient<TSource>(client =>
             {
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromSeconds(60);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
             })
-            .AddStandardResilienceHandler();
+            .AddStandardResilienceHandler(o =>
+            {
+                // Bazı kaynaklar (örn. RemoteOK ~20s) default 10s attempt timeout altinda kalir.
+                o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+                o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(60);
+                o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(120);
+            });
     }
 
     private static void AddLlm(IServiceCollection services, IConfiguration config)
@@ -117,5 +129,23 @@ public static class DependencyInjection
 
         AddResilientSourceClient<WeWorkRemotelyJobSource>(services);
         services.AddTransient<IJobSource>(sp => sp.GetRequiredService<WeWorkRemotelyJobSource>());
+    }
+
+    private static void AddRemotive(IServiceCollection services, IConfiguration config)
+    {
+        var opts = config.GetSection(RemotiveOptions.SectionName).Get<RemotiveOptions>() ?? new RemotiveOptions();
+        if (!opts.Enabled) return;
+
+        AddResilientSourceClient<RemotiveJobSource>(services);
+        services.AddTransient<IJobSource>(sp => sp.GetRequiredService<RemotiveJobSource>());
+    }
+
+    private static void AddArbeitnow(IServiceCollection services, IConfiguration config)
+    {
+        var opts = config.GetSection(ArbeitnowOptions.SectionName).Get<ArbeitnowOptions>() ?? new ArbeitnowOptions();
+        if (!opts.Enabled) return;
+
+        AddResilientSourceClient<ArbeitnowJobSource>(services);
+        services.AddTransient<IJobSource>(sp => sp.GetRequiredService<ArbeitnowJobSource>());
     }
 }
