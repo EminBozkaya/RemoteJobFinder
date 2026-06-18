@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using JobScanner.Application.Abstractions;
+using JobScanner.Application.Deciding;
 using JobScanner.Domain.Eligibility;
 using JobScanner.Domain.Enums;
 using JobScanner.Domain.Jobs;
@@ -26,6 +27,7 @@ public sealed class JobScanPipeline
     private readonly IScoringEngine _scoring;
     private readonly IUserMatchRepository _matches;
     private readonly IExtractionVersion _version;
+    private readonly IJobLivenessChecker _liveness;
     private readonly PipelineOptions _options;
     private readonly TimeProvider _clock;
     private readonly ILogger<JobScanPipeline> _log;
@@ -43,6 +45,7 @@ public sealed class JobScanPipeline
         IScoringEngine scoring,
         IUserMatchRepository matches,
         IExtractionVersion version,
+        IJobLivenessChecker liveness,
         IOptions<PipelineOptions> options,
         TimeProvider clock,
         ILogger<JobScanPipeline> log)
@@ -59,6 +62,7 @@ public sealed class JobScanPipeline
         _scoring = scoring;
         _matches = matches;
         _version = version;
+        _liveness = liveness;
         _options = options.Value;
         _clock = clock;
         _log = log;
@@ -81,7 +85,7 @@ public sealed class JobScanPipeline
 
         var activeProfiles = await _profiles.GetActiveAsync(ct);
 
-        int newOrChanged = 0, unchanged = 0, eliminated = 0, extracted = 0, matched = 0, extractionErrors = 0, llmCalls = 0;
+        int newOrChanged = 0, unchanged = 0, eliminated = 0, extracted = 0, matched = 0, extractionErrors = 0, llmCalls = 0, deadLinks = 0;
 
         foreach (var job in normalized)
         {
@@ -104,6 +108,17 @@ public sealed class JobScanPipeline
             if (rf.Decision == FilterDecision.Eliminate)
             {
                 eliminated++;
+                continue;
+            }
+
+            // 4.5 Liveness gate: ilan URL'si açıkça öldüyse (404/410) LLM'i çağırma.
+            //     Belirsiz durumlar (null) extraction'a devam (Polly + ihtiyatlı yaklaşım).
+            var alive = await _liveness.IsAliveAsync(persisted.Url, ct);
+            if (alive == false)
+            {
+                deadLinks++;
+                await _jobs.ArchiveOneAsync(persisted.Id, ct);
+                _log.LogInformation("İlan {JobId} ({Url}) ölü görünüyor — arşivlendi, extraction atlanıyor", persisted.Id, persisted.Url);
                 continue;
             }
 
@@ -135,6 +150,9 @@ public sealed class JobScanPipeline
 
             extracted++;
 
+            // 5.5 Legitimacy (ghost-job detection, saf C#) — facts + job zaman damgalarından.
+            var legit = Legitimacy.Evaluate(facts, persisted, _clock.GetUtcNow());
+
             // 6. Her aktif profil için: KARAR + PUAN (saf C#, token yok)
             foreach (var profile in activeProfiles)
             {
@@ -148,7 +166,8 @@ public sealed class JobScanPipeline
 
                 await _matches.UpsertAsync(
                     profile.Id, persisted.Id, score.Final,
-                    SerializeBreakdown(score), decision, SerializeReasons(reasons), ct);
+                    SerializeBreakdown(score), decision, SerializeReasons(reasons),
+                    legit.Confidence, SerializeSignals(legit.Signals), ct);
                 matched++;
             }
         }
@@ -158,10 +177,10 @@ public sealed class JobScanPipeline
         var archivedJobs = await _jobs.ArchiveStaleAsync(staleSince, ct);
         var expiredMatches = archivedJobs > 0 ? await _matches.ExpireOpenMatchesForArchivedJobsAsync(ct) : 0;
 
-        var metrics = new RunMetrics(raw.Count, newOrChanged, unchanged, eliminated, extracted, matched, sourceErrors, extractionErrors, archivedJobs, expiredMatches);
+        var metrics = new RunMetrics(raw.Count, newOrChanged, unchanged, eliminated, extracted, matched, sourceErrors, extractionErrors, archivedJobs, expiredMatches, deadLinks);
         _log.LogInformation(
-            "Run metrics: fetched={Fetched} new+changed={NewOrChanged} unchanged={Unchanged} eliminated={Eliminated} extracted={Extracted} matches={Matches} sourceErrors={SourceErrors} extractionErrors={ExtractionErrors} archived={ArchivedJobs} expired={ExpiredMatches}",
-            metrics.Fetched, metrics.NewOrChanged, metrics.Unchanged, metrics.Eliminated, metrics.Extracted, metrics.Matches, metrics.SourceErrors, metrics.ExtractionErrors, metrics.ArchivedJobs, metrics.ExpiredMatches);
+            "Run metrics: fetched={Fetched} new+changed={NewOrChanged} unchanged={Unchanged} eliminated={Eliminated} extracted={Extracted} matches={Matches} sourceErrors={SourceErrors} extractionErrors={ExtractionErrors} archived={ArchivedJobs} expired={ExpiredMatches} deadLinks={DeadLinks}",
+            metrics.Fetched, metrics.NewOrChanged, metrics.Unchanged, metrics.Eliminated, metrics.Extracted, metrics.Matches, metrics.SourceErrors, metrics.ExtractionErrors, metrics.ArchivedJobs, metrics.ExpiredMatches, metrics.DeadLinks);
 
         return metrics;
     }
@@ -205,4 +224,7 @@ public sealed class JobScanPipeline
 
     private static string SerializeBreakdown(JobScore score) =>
         System.Text.Json.JsonSerializer.Serialize(score.Breakdown);
+
+    private static string SerializeSignals(IReadOnlyList<string> signals) =>
+        System.Text.Json.JsonSerializer.Serialize(signals);
 }

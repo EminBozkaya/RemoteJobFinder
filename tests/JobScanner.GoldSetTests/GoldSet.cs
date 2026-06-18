@@ -76,7 +76,7 @@ internal static class GoldSet
             JobId: 1, PromptVersion: "v1", ModelVersion: "gold", VersionHash: "h",
             RequiresWorkAuth: workAuth, RequiresRelocation: relocation,
             BackgroundCheckCountry: bgCheckCountry,
-            AllowedCountries: allowed, RequiresCitizenship: citizenship,
+            AllowedCountries: allowed, RequiresCitizenship: citizenship, IsLikelyGhost: null,
             AllowsB2BContractor: allowsB2B, EngagementType: eng, MentionsEor: eor, EorPlatform: platform,
             DataBoundary: dataBoundary, TimezoneRequirementRaw: tz, IsRecruiterAgency: null,
             Confidence: conf, ExtractedAt: DateTimeOffset.UnixEpoch, RawJson: "{}");

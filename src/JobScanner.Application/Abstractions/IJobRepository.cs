@@ -16,4 +16,7 @@ public interface IJobRepository
 
     /// <summary>Belirtilen tarihten beri görülmeyen aktif ilanları arşivler; arşivlenen sayısını döner.</summary>
     Task<int> ArchiveStaleAsync(DateTimeOffset notSeenSince, CancellationToken ct);
+
+    /// <summary>Tek bir ilanı arşivler (ör. liveness gate 404 saptadığında).</summary>
+    Task ArchiveOneAsync(long jobId, CancellationToken ct);
 }

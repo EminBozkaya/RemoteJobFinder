@@ -4,6 +4,7 @@ import { fetchMatches } from '@/api/client'
 import { KNOWN_SOURCES, type DecisionKind, type KnownSource } from '@/api/types'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { decisionLabels } from '@/lib/labels'
 import { MatchCard } from './MatchCard'
 
 const ALL_DECISIONS: DecisionKind[] = ['Eligible', 'Uncertain', 'Ineligible']
@@ -93,7 +94,7 @@ export function MatchesPage() {
                   checked={decisions.has(d)}
                   onChange={() => toggleDecision(d)}
                 />
-                {d}
+                {decisionLabels[d]}
               </label>
             ))}
           </div>
@@ -113,7 +114,7 @@ export function MatchesPage() {
       {data && filtered.length === 0 && (
         <p className="rounded-md border border-[color:var(--color-border)] p-6 text-center text-sm text-[color:var(--color-muted)]">
           Filtreyle eşleşen kayıt yok. Min skoru düşür, kaynağı değiştir veya karar
-          filtresine "Ineligible" ekle.
+          filtresine "Uygun değil"i ekle.
         </p>
       )}
 

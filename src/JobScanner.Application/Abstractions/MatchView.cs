@@ -4,6 +4,7 @@ namespace JobScanner.Application.Abstractions;
 public sealed record MatchView(
     long ProfileId,
     long JobId,
+    string SourceName,
     string Title,
     string Company,
     string Url,
@@ -11,6 +12,8 @@ public sealed record MatchView(
     double Score,
     string Decision,
     string State,
+    string Legitimacy,
     DateTimeOffset? PostedAt,
     string ScoreBreakdownJson,
-    string DecisionReasonsJson);
+    string DecisionReasonsJson,
+    string LegitimacySignalsJson);

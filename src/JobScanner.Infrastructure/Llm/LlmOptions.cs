@@ -19,7 +19,7 @@ public sealed class LlmOptions
     public string? ApiKey { get; init; }
 
     /// <summary>Prompt sürümü (cache anahtarının parçası). Prompt değişince artır.</summary>
-    public string PromptVersion { get; init; } = "v3";
+    public string PromptVersion { get; init; } = "v4";
 
     public int MaxOutputTokens { get; init; } = 800;
 

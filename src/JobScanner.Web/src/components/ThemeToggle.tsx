@@ -35,14 +35,15 @@ export function ThemeToggle() {
   }, [theme])
 
   const next: Record<Theme, Theme> = { light: 'dark', dark: 'system', system: 'light' }
-  const label: Record<Theme, string> = { light: '☀ Light', dark: '☾ Dark', system: '⊙ Auto' }
+  const label: Record<Theme, string> = { light: '☀ Açık', dark: '🌙 Koyu', system: '🖥 Otomatik' }
 
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={() => setTheme(next[theme])}
-      title="Tema değiştir (light → dark → auto)"
+      title="Temayı değiştir (açık → koyu → otomatik)"
+      aria-label="Temayı değiştir"
     >
       {label[theme]}
     </Button>

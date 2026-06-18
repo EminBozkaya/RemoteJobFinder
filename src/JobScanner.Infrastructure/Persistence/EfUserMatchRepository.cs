@@ -28,6 +28,8 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
         string scoreBreakdownJson,
         Decision decision,
         string decisionReasonsJson,
+        LegitimacyConfidence legitimacy,
+        string legitimacySignalsJson,
         CancellationToken ct)
     {
         var existing = await _db.UserJobMatches
@@ -43,6 +45,8 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
                 ScoreBreakdownJson = scoreBreakdownJson,
                 Decision = decision,
                 DecisionReasonsJson = decisionReasonsJson,
+                Legitimacy = legitimacy,
+                LegitimacySignalsJson = legitimacySignalsJson,
                 State = MatchState.New,
                 CreatedAt = _clock.GetUtcNow(),
             });
@@ -54,6 +58,8 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
             existing.ScoreBreakdownJson = scoreBreakdownJson;
             existing.Decision = decision;
             existing.DecisionReasonsJson = decisionReasonsJson;
+            existing.Legitimacy = legitimacy;
+            existing.LegitimacySignalsJson = legitimacySignalsJson;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -82,9 +88,10 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
                   && (source == null || j.SourceName == source)
             orderby m.Score descending, j.PostedAt descending
             select new MatchView(
-                m.ProfileId, m.JobId, j.Title, j.Company, j.Url, j.ApplyUrl,
-                m.Score, m.Decision.ToString(), m.State.ToString(), j.PostedAt,
-                m.ScoreBreakdownJson, m.DecisionReasonsJson))
+                m.ProfileId, m.JobId, j.SourceName, j.Title, j.Company, j.Url, j.ApplyUrl,
+                m.Score, m.Decision.ToString(), m.State.ToString(), m.Legitimacy.ToString(),
+                j.PostedAt,
+                m.ScoreBreakdownJson, m.DecisionReasonsJson, m.LegitimacySignalsJson))
             .Take(take)
             .ToListAsync(ct);
 

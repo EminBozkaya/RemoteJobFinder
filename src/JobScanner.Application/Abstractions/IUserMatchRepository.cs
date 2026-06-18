@@ -16,6 +16,8 @@ public interface IUserMatchRepository
         string scoreBreakdownJson,
         Decision decision,
         string decisionReasonsJson,
+        LegitimacyConfidence legitimacy,
+        string legitimacySignalsJson,
         CancellationToken ct);
 
     /// <summary>Arşivlenmiş ilanlara ait açık eşleşmeleri (New/Saved/Opened) Expired yapar; sayısını döner.</summary>

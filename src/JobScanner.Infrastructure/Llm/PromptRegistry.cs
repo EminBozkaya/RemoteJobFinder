@@ -38,7 +38,8 @@ public sealed class PromptRegistry
           "eorPlatform": "..."|null,                   // EOR/platform name if any (Deel, Remote.com, Oyster, ...)
           "dataBoundary": "..."|null,                  // data residency constraint (e.g. "EU only","US only") or null
           "timezoneRequirementRaw": "..."|null,        // raw timezone/overlap requirement (e.g. "EST 9-5","CET overlap") or null
-          "isRecruiterAgency": true|false|null,        // posting is by a recruiting agency
+          "isRecruiterAgency": true|false|null,        // posting is by a recruiting agency rather than the actual employer
+          "isLikelyGhost": true|false|null,            // true if the posting reads like an "evergreen" / ghost ad: explicit phrases like "always hiring", "talent pool", "future opportunities", no concrete team or requirements, very generic copy-paste JD; false if the JD is specific with concrete responsibilities; null if unclear
           "confidence": 0.0                            // 0..1 your confidence in the extraction
         }
 

@@ -13,6 +13,8 @@ internal sealed class UserJobMatchConfiguration : IEntityTypeConfiguration<UserJ
 
         b.Property(x => x.Decision).HasConversion<string>().HasMaxLength(32);
         b.Property(x => x.State).HasConversion<string>().HasMaxLength(32);
+        b.Property(x => x.Legitimacy).HasConversion<string>().HasMaxLength(32).HasDefaultValue(JobScanner.Domain.Enums.LegitimacyConfidence.High);
+        b.Property(x => x.LegitimacySignalsJson).HasColumnType("jsonb").HasDefaultValue("[]");
         b.Property(x => x.ScoreBreakdownJson).HasColumnType("jsonb").HasDefaultValue("[]");
         b.Property(x => x.DecisionReasonsJson).HasColumnType("jsonb").HasDefaultValue("[]");
         b.Property(x => x.Feedback).HasMaxLength(32);

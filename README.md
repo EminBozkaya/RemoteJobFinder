@@ -193,6 +193,7 @@ dotnet test
 | 3.1 — Mutasyonlar | API POST endpoint'leri (save/open/apply/dismiss) | ✅ |
 | 3.2 — Kaynaklar | RemoteOK + We Work Remotely | ✅ |
 | 3.4 — SPA | React + Tailwind + shadcn | ✅ |
+| 3 — Ghost-job & Liveness | Block G legitimacy sinyalleri + HEAD liveness gate | ✅ |
 | 4 — Otomasyon | Yüksek skorluya CV + cover letter üretimi | ⏳ |
 
 ---

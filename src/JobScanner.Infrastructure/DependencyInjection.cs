@@ -1,6 +1,7 @@
 using JobScanner.Application.Abstractions;
 using JobScanner.Infrastructure.Enrichment;
 using JobScanner.Infrastructure.Extraction;
+using JobScanner.Infrastructure.Liveness;
 using JobScanner.Infrastructure.Llm;
 using JobScanner.Infrastructure.Normalization;
 using JobScanner.Infrastructure.Persistence;
@@ -38,6 +39,14 @@ public static class DependencyInjection
 
         services.AddSingleton<IJobNormalizer, Normalizer>();
         services.AddSingleton<IJobEnricher, NoOpJobEnricher>();
+
+        // Liveness checker — ilan URL'leri için HTTP HEAD, Polly + 10s timeout
+        services.AddHttpClient<IJobLivenessChecker, HttpLivenessChecker>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+            })
+            .AddStandardResilienceHandler();
         // INotifier: Faz 1-2'de implementasyon YOK (kasitli olarak kaydedilmez).
 
         // LLM fact extraction (sağlayıcı-bağımsız IChatClient)

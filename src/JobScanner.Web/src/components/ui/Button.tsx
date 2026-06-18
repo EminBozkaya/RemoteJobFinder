@@ -11,7 +11,7 @@ const buttonVariants = cva(
         default:
           'bg-[color:var(--color-accent)] text-white hover:opacity-90',
         outline:
-          'border border-[color:var(--color-border)] bg-[color:var(--color-card)] hover:bg-black/5 dark:hover:bg-white/5',
+          'border border-[color:var(--color-muted)]/40 bg-[color:var(--color-card)] hover:bg-black/5 dark:hover:bg-white/5 shadow-sm',
         ghost:
           'hover:bg-black/5 dark:hover:bg-white/5',
         danger:

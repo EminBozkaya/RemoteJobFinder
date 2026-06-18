@@ -14,6 +14,8 @@ public sealed class UserJobMatch
     public string ScoreBreakdownJson { get; set; } = "[]";   // [{criterion, contribution}]
     public Decision Decision { get; set; }                   // C#'ta facts'ten hesaplanır
     public string DecisionReasonsJson { get; set; } = "[]";
+    public LegitimacyConfidence Legitimacy { get; set; } = LegitimacyConfidence.High;
+    public string LegitimacySignalsJson { get; set; } = "[]"; // sinyal etiketleri (ghost/recruiter/old/low-confidence)
     public MatchState State { get; set; } = MatchState.New;
     public string? Feedback { get; set; }                    // GoodFit | BadFit | null
     public DateTimeOffset? OpenedAt { get; set; }

@@ -24,6 +24,7 @@ public sealed record EligibilityFacts(
     string? DataBoundary,
     string? TimezoneRequirementRaw,            // ör. "EST 9-5", "CET core hours"
     bool? IsRecruiterAgency,
+    bool? IsLikelyGhost,                        // "always hiring"/"talent pool"/aşırı jenerik JD sinyali (ghost/evergreen)
     double Confidence,
     DateTimeOffset ExtractedAt,
     string RawJson);

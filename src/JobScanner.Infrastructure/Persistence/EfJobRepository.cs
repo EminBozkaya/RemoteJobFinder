@@ -56,4 +56,9 @@ public sealed class EfJobRepository : IJobRepository
         await _db.JobPostings
             .Where(x => x.Status == JobStatus.Active && x.LastSeenAt < notSeenSince)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, JobStatus.Archived), ct);
+
+    public async Task ArchiveOneAsync(long jobId, CancellationToken ct) =>
+        await _db.JobPostings
+            .Where(x => x.Id == jobId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, JobStatus.Archived), ct);
 }

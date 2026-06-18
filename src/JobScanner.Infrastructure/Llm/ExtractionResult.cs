@@ -16,4 +16,5 @@ internal sealed record ExtractionResult(
     [property: JsonPropertyName("dataBoundary")] string? DataBoundary,
     [property: JsonPropertyName("timezoneRequirementRaw")] string? TimezoneRequirementRaw,
     [property: JsonPropertyName("isRecruiterAgency")] bool? IsRecruiterAgency,
+    [property: JsonPropertyName("isLikelyGhost")] bool? IsLikelyGhost,
     [property: JsonPropertyName("confidence")] double? Confidence);

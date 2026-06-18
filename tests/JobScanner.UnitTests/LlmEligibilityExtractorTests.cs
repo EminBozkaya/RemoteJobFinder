@@ -29,11 +29,13 @@ public sealed class LlmEligibilityExtractorTests
         var json = """
         {"requiresWorkAuth": true, "allowedCountries": ["Worldwide"], "requiresCitizenship": false,
          "allowsB2BContractor": true, "engagementType": "B2B", "mentionsEor": true, "eorPlatform": "Deel",
-         "dataBoundary": null, "timezoneRequirementRaw": "CET overlap", "isRecruiterAgency": false, "confidence": 0.8}
+         "dataBoundary": null, "timezoneRequirementRaw": "CET overlap", "isRecruiterAgency": false,
+         "isLikelyGhost": true, "confidence": 0.8}
         """;
         var facts = await Build(json).ExtractAsync(TestFactory.Job(), CancellationToken.None);
 
         Assert.True(facts.RequiresWorkAuth);
+        Assert.True(facts.IsLikelyGhost);
         Assert.Equal(EngagementType.B2B, facts.EngagementType);
         Assert.Equal("Deel", facts.EorPlatform);
         Assert.Equal("CET overlap", facts.TimezoneRequirementRaw);

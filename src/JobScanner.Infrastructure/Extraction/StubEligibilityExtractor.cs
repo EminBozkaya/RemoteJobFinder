@@ -39,6 +39,7 @@ public sealed class StubEligibilityExtractor : IEligibilityExtractor
             DataBoundary: null,
             TimezoneRequirementRaw: null,
             IsRecruiterAgency: null,
+            IsLikelyGhost: null,
             Confidence: 0,
             ExtractedAt: _clock.GetUtcNow(),
             RawJson: "{}");

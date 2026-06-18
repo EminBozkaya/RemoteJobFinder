@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { mutateMatch } from '@/api/client'
-import type { DecisionKind, MatchAction, MatchView, ScoreContribution, StateKind } from '@/api/types'
+import type { DecisionKind, LegitimacyKind, MatchAction, MatchView, ScoreContribution, StateKind } from '@/api/types'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { decisionLabels, explainSignal, legitimacyLabels, stateLabels } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent'
@@ -21,6 +22,18 @@ const stateTone: Record<StateKind, Tone> = {
   Applied: 'success',
   Dismissed: 'danger',
   Expired: 'neutral',
+}
+
+const legitimacyTone: Record<LegitimacyKind, Tone> = {
+  High: 'success',
+  Caution: 'warning',
+  Suspicious: 'danger',
+}
+
+const legitimacyIcon: Record<LegitimacyKind, string> = {
+  High: '',
+  Caution: '⚠',
+  Suspicious: '🚩',
 }
 
 function scoreTone(score: number): Tone {
@@ -55,7 +68,9 @@ export function MatchCard({ m }: { m: MatchView }) {
 
   const breakdown = safeParse<ScoreContribution[]>(m.scoreBreakdownJson, [])
   const reasons = safeParse<string[]>(m.decisionReasonsJson, [])
+  const signals = safeParse<string[]>(m.legitimacySignalsJson, [])
   const applyHref = m.applyUrl || m.url
+  const showLegitimacy = m.legitimacy !== 'High'
 
   return (
     <article
@@ -70,17 +85,28 @@ export function MatchCard({ m }: { m: MatchView }) {
           <p className="truncate text-sm text-[color:var(--color-muted)]">
             {m.company || 'Bilinmeyen şirket'} · {formatPosted(m.postedAt)}
           </p>
+          <p className="mt-1 text-xs text-[color:var(--color-muted)]">
+            Kaynak: <span className="font-medium text-[color:var(--color-fg)]">{m.sourceName}</span>
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <Badge tone={scoreTone(m.score)}>★ {m.score.toFixed(1)}</Badge>
-          <Badge tone={decisionTone[m.decision]}>{m.decision}</Badge>
-          <Badge tone={stateTone[m.state]}>{m.state}</Badge>
+          <Badge tone={decisionTone[m.decision]}>{decisionLabels[m.decision]}</Badge>
+          <Badge tone={stateTone[m.state]}>{stateLabels[m.state]}</Badge>
+          {showLegitimacy && (
+            <Badge
+              tone={legitimacyTone[m.legitimacy]}
+              title={signals.map(explainSignal).join(' · ') || undefined}
+            >
+              {legitimacyIcon[m.legitimacy]} {legitimacyLabels[m.legitimacy]}
+            </Badge>
+          )}
         </div>
       </header>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button asChild size="sm">
-          <a href={applyHref} target="_blank" rel="noopener noreferrer">İlana git ↗</a>
+          <a href={applyHref} target="_blank" rel="noopener noreferrer">Kaynağa git ↗</a>
         </Button>
         <Button
           size="sm"
@@ -134,6 +160,14 @@ export function MatchCard({ m }: { m: MatchView }) {
               {reasons.length === 0 && <li className="text-[color:var(--color-muted)] list-none">—</li>}
               {reasons.map((r, i) => <li key={i}>{r}</li>)}
             </ul>
+            {signals.length > 0 && (
+              <>
+                <h4 className="mt-3 mb-1 font-semibold">Güvenilirlik sinyalleri</h4>
+                <ul className="list-disc space-y-1 pl-4 text-[color:var(--color-muted)]">
+                  {signals.map((s, i) => <li key={i}>{explainSignal(s)}</li>)}
+                </ul>
+              </>
+            )}
           </section>
         </div>
       )}

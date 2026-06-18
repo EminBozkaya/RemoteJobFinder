@@ -98,6 +98,7 @@ public sealed class LlmEligibilityExtractor : IEligibilityExtractor
             DataBoundary: NullIfBlank(r.DataBoundary),
             TimezoneRequirementRaw: NullIfBlank(r.TimezoneRequirementRaw),
             IsRecruiterAgency: r.IsRecruiterAgency,
+            IsLikelyGhost: r.IsLikelyGhost,
             Confidence: Math.Clamp(r.Confidence ?? 0, 0, 1),
             ExtractedAt: _clock.GetUtcNow(),
             RawJson: rawJson);

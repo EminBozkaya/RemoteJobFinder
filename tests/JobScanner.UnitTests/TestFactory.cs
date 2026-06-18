@@ -21,6 +21,7 @@ internal static class TestFactory
         string? dataBoundary = null,
         string? timezoneRequirementRaw = null,
         bool? isRecruiterAgency = null,
+        bool? isLikelyGhost = null,
         double confidence = 0.9) =>
         new(
             JobId: 1, PromptVersion: "v1", ModelVersion: "test", VersionHash: "h",
@@ -30,8 +31,8 @@ internal static class TestFactory
             RequiresCitizenship: requiresCitizenship, AllowsB2BContractor: allowsB2BContractor,
             EngagementType: engagementType, MentionsEor: mentionsEor, EorPlatform: eorPlatform,
             DataBoundary: dataBoundary, TimezoneRequirementRaw: timezoneRequirementRaw,
-            IsRecruiterAgency: isRecruiterAgency, Confidence: confidence,
-            ExtractedAt: DateTimeOffset.UnixEpoch, RawJson: "{}");
+            IsRecruiterAgency: isRecruiterAgency, IsLikelyGhost: isLikelyGhost,
+            Confidence: confidence, ExtractedAt: DateTimeOffset.UnixEpoch, RawJson: "{}");
 
     public static CriteriaProfile Profile(
         string residenceCountry = "TR",
