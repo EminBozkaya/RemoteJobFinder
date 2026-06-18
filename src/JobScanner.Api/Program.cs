@@ -7,7 +7,43 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// React SPA dev sunucusundan CORS (Vite varsayilan :5173). Prod'da SPA ayni origin'den
+// servis edilebilir; ek origin'ler appsettings.json "Cors:AllowedOrigins" ile genisletilir.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:5173"];
+builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
+    p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+
 var app = builder.Build();
+app.UseCors();
+
+// --- Opsiyonel bearer token koruması (self-host public deploy için) ---
+// Token önceliği: env JOBSCANNER_API_TOKEN > config "Auth:Token". Hiçbiri yoksa middleware OFF
+// (lokal dev'i kırmaz). Set edildiğinde /health hariç tüm endpoint'ler Authorization: Bearer <token> ister.
+var apiToken = Environment.GetEnvironmentVariable("JOBSCANNER_API_TOKEN")
+    ?? builder.Configuration["Auth:Token"];
+if (!string.IsNullOrWhiteSpace(apiToken))
+{
+    app.Use(async (ctx, next) =>
+    {
+        if (ctx.Request.Path.StartsWithSegments("/health"))
+        {
+            await next();
+            return;
+        }
+        var header = ctx.Request.Headers.Authorization.ToString();
+        if (header.StartsWith("Bearer ", StringComparison.Ordinal) &&
+            string.Equals(header["Bearer ".Length..], apiToken, StringComparison.Ordinal))
+        {
+            await next();
+            return;
+        }
+        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        ctx.Response.Headers.WWWAuthenticate = "Bearer";
+        await ctx.Response.WriteAsJsonAsync(new { error = "missing_or_invalid_token" });
+    });
+    app.Logger.LogInformation("API token koruması AÇIK (header gereken endpoint'ler için)");
+}
 
 app.MapGet("/", () => Results.Ok(new
 {
