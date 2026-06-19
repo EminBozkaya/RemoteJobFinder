@@ -47,6 +47,17 @@ Polly · xUnit. `<Nullable>enable</Nullable>`, en güncel C#. (İleride: Microso
 - Yapısal log (`ILogger`); her run sonunda metrik satırı (fetched/new+changed/eliminated/extracted/matches).
 - Test: saf mantık (Normalizer, RuleFilter, Decider, Scoring) unit; extraction gold-set ile.
 
+## Commit & sürüm konvansiyonu
+- **Conventional Commits + release-please.** `feat`/`fix`/`docs`/`chore`/`ci`/`refactor`/`perf`/`test`; `feat!:` veya `BREAKING CHANGE:` major bump.
+- **Commit mesajı: İngilizce başlık (subject) + Türkçe gövde (body).** CHANGELOG başlıktan üretilir; İngilizce başlık sürüm notlarını uluslararası okunur kılar, Türkçe ayrıntı gövdede kalır.
+  ```
+  feat: job-tailored CV + cover letter generation
+
+  Faz 4: yüksek skorlu ilanlara on-demand başvuru materyali.
+  - IApplicationMaterialGenerator (LLM) + MaterialService
+  ```
+- `feat`/`fix` etiketini doğru seç (sürüm artışını etkiler). Geçmiş commit'leri yeniden yazma.
+
 ## Çözüm yapısı
 `docs/PLAN.md` §3. Özet: `src/{Domain, Application, Infrastructure, Worker}` (+ ileride `Api`, `Web`), `tests/`, `deploy/`.
 
