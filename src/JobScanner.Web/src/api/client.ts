@@ -1,4 +1,4 @@
-import type { MatchAction, MatchView, MatchesQuery } from './types'
+import type { ApplicationMaterial, MatchAction, MatchView, MatchesQuery } from './types'
 
 // Dev'de vite.config.ts /api -> :5163 proxy'ler. Prod'da ayni origin'den servis.
 const BASE = '/api'
@@ -33,4 +33,24 @@ export async function fetchMatches(q: MatchesQuery = {}): Promise<MatchView[]> {
 
 export async function mutateMatch(profileId: number, jobId: number, action: MatchAction): Promise<void> {
   await http(`/matches/${profileId}/${jobId}/${action}`, { method: 'POST' })
+}
+
+// Taze saklı materyal varsa onu döner (token harcamadan), yoksa LLM ile üretir.
+// force=true önceki materyali yok sayıp yeniden üretir. Hata gövdesindeki mesajı yüzeye çıkarır.
+export async function generateMaterials(
+  profileId: number, jobId: number, force = false,
+): Promise<ApplicationMaterial> {
+  const resp = await fetch(`${BASE}/matches/${profileId}/${jobId}/materials${force ? '?force=true' : ''}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', ...authHeaders() },
+  })
+  if (!resp.ok) {
+    let msg = `${resp.status} ${resp.statusText}`
+    try {
+      const body = await resp.json() as { message?: string; error?: string }
+      msg = body.message ?? body.error ?? msg
+    } catch { /* gövde JSON değil */ }
+    throw new Error(msg)
+  }
+  return (await resp.json()) as ApplicationMaterial
 }

@@ -1,4 +1,5 @@
 using JobScanner.Application.Abstractions;
+using JobScanner.Application.Applications;
 using JobScanner.Application.Deciding;
 using JobScanner.Application.Filtering;
 using JobScanner.Application.Pipeline;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddSingleton<IScoringEngine, ScoringEngine>();
 
         services.AddScoped<JobScanPipeline>();
+        services.AddScoped<MaterialService>();
         return services;
     }
 }

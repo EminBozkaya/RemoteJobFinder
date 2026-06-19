@@ -21,6 +21,12 @@ public sealed class LlmOptions
     /// <summary>Prompt sürümü (cache anahtarının parçası). Prompt değişince artır.</summary>
     public string PromptVersion { get; init; } = "v4";
 
+    /// <summary>Materyal (CV + cover letter) üretimi prompt sürümü. Değişince saklı materyal tazelenir.</summary>
+    public string MaterialPromptVersion { get; init; } = "v1";
+
+    /// <summary>Materyal üretiminde çıktı uzun olabilir; ayrı (daha yüksek) token tavanı.</summary>
+    public int MaterialMaxOutputTokens { get; init; } = 2500;
+
     public int MaxOutputTokens { get; init; } = 800;
 
     /// <summary>Cache anahtarındaki ModelVersion: sağlayıcı + model (model değişince cache geçersizleşir).</summary>

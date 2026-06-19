@@ -1,5 +1,6 @@
 using System.Net;
 using JobScanner.Application.Abstractions;
+using JobScanner.Infrastructure.Cv;
 using JobScanner.Infrastructure.Enrichment;
 using JobScanner.Infrastructure.Extraction;
 using JobScanner.Infrastructure.Liveness;
@@ -39,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IProfileRepository, EfProfileRepository>();
         services.AddScoped<IUserMatchRepository, EfUserMatchRepository>();
         services.AddScoped<IFactsCache, EfFactsCache>();
+        services.AddScoped<IApplicationMaterialRepository, EfApplicationMaterialRepository>();
 
         services.AddSingleton<IJobNormalizer, Normalizer>();
         services.AddSingleton<IJobEnricher, NoOpJobEnricher>();
@@ -100,15 +102,22 @@ public static class DependencyInjection
         services.AddSingleton<IExtractionVersion, ExtractionVersion>();
         services.AddSingleton<PromptRegistry>();
 
+        // Materyal üretimi (Faz 4): ana CV kaynağı + prompt + generator
+        services.Configure<CvOptions>(config.GetSection(CvOptions.SectionName));
+        services.AddSingleton<ICvSource, FileCvSource>();
+        services.AddSingleton<MaterialPromptRegistry>();
+
         var llm = config.GetSection(LlmOptions.SectionName).Get<LlmOptions>() ?? new LlmOptions();
         if (llm.Enabled)
         {
             services.AddSingleton(ChatClientFactory.Create(llm));
             services.AddSingleton<IEligibilityExtractor, LlmEligibilityExtractor>();
+            services.AddSingleton<IApplicationMaterialGenerator, LlmApplicationMaterialGenerator>();
         }
         else
         {
             services.AddSingleton<IEligibilityExtractor, StubEligibilityExtractor>();
+            services.AddSingleton<IApplicationMaterialGenerator, DisabledApplicationMaterialGenerator>();
         }
     }
 

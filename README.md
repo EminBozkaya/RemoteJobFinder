@@ -151,6 +151,27 @@ eklemek için ilgili `Microsoft.Extensions.AI` paketi + bir case yeterli.
 
 ---
 
+## Başvuru materyali (CV + cover letter)
+
+Bir eşleşme için panelde **"✍ Materyal üret"** → ilana özel **cover letter** + **vurguları ilana göre
+düzenlenmiş CV** üretilir (ilan diliyle: İngilizce ilana İngilizce, Türkçe ilana Türkçe). Sistem
+materyali yalnız **hazırlar**, göndermez.
+
+1. Ana CV'ni hazırla: `data/cv.md.example`'ı kopyala → `data/cv.md` (kişisel veri, gitignore'lu):
+   ```bash
+   cp data/cv.md.example data/cv.md   # sonra kendi bilgilerinle doldur
+   ```
+2. Üretim **LLM gerektirir** (`Llm:Enabled=true`). API'nin kullandığı `appsettings.json`'da aç.
+3. Üretilen materyal `(profil, ilan)` başına DB'de saklanır; tekrar açınca **token harcamadan**
+   kayıttan gelir. Ana CV veya ilan içeriği değişirse otomatik tazelenir. **"Yeniden üret"** zorlar.
+
+> Materyal LLM ana CV'den yalnız **yeniden vurgular**; deneyim/eğitim **uydurmaz**. Üretilen
+> içeriği göndermeden önce gözden geçir.
+
+Endpoint'ler: `GET|POST /matches/{profileId}/{jobId}/materials` (`?force=true` ile yeniden üret).
+
+---
+
 ## Public deploy & güvenlik
 
 JobScanner.Api'yi Oracle VM / VPS gibi internete açık bir yerde çalıştırıyorsan
@@ -199,7 +220,7 @@ dotnet test
 | 3.5 — Kaynak genişletme | Remotive + Arbeitnow | ✅ |
 | 3.4 — SPA | React + Tailwind + shadcn | ✅ |
 | 3 — Ghost-job & Liveness | Block G legitimacy sinyalleri + HEAD liveness gate | ✅ |
-| 4 — Otomasyon | Yüksek skorluya CV + cover letter üretimi | ⏳ |
+| 4 — Materyal üretimi | İlana özel cover letter + uyarlanmış CV (on-demand) | ✅ |
 
 ---
 

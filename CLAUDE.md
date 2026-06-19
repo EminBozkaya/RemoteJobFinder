@@ -19,7 +19,7 @@ React SPA + auth + apply/dismiss hâlâ **Faz 3** (kapsam dışı). Kapsam: `doc
 - İş mantığını (RuleFilter, Decider, Scoring) **saf, yan etkisiz** tut; Infrastructure/Worker'a iş mantığı koyma.
 - **DB yalnız PostgreSQL** (Npgsql + EF Core). **SQLite ekleme.**
 - **Web scraping yok.** Veri yalnız `IJobSource` API adaptörlerinden gelir.
-- **LLM yalnız fact extractor** (`IEligibilityExtractor`), yapılandırılmış JSON gerçekler döndürür. Uygunluk **kararını LLM vermez**; karar saf C#'ta `IEligibilityDecider`'dadır.
+- **Uygunluk kararını LLM ASLA vermez**; karar/puan saf C#'ta (`IEligibilityDecider` + `ScoringEngine`). LLM iki rolde kullanılır: (1) **fact extractor** (`IEligibilityExtractor`) yapılandırılmış JSON gerçekler döndürür; (2) **Faz 4 materyal üretici** (`IApplicationMaterialGenerator`) ilana özel cover letter + uyarlanmış CV üretir (göndermez, hazırlar). Üretim eleme/puanı etkilemez.
 - İlan kimliği = `(SourceName, ExternalId)` + `IdentityKey`; içerik değişimi `VersionHash` ile. **Tüm-içerik hash'ini kimlik olarak kullanma.**
 - Cache **ham çıkarılmış gerçekleri** tutar, anahtar `JobId + PromptVersion + ModelVersion + VersionHash`. **Kararı/verdict'i cache'leme.**
 - LLM erişimi **Microsoft.Extensions.AI `IChatClient`** üzerinden (sağlayıcı-bağımsız). Tek sağlayıcıyı hard-code etme.

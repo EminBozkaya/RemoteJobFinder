@@ -1,5 +1,6 @@
 using JobScanner.Application;
 using JobScanner.Application.Abstractions;
+using JobScanner.Application.Applications;
 using JobScanner.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,6 +58,8 @@ app.MapGet("/", () => Results.Ok(new
         "POST /matches/{profileId}/{jobId}/open",
         "POST /matches/{profileId}/{jobId}/apply",
         "POST /matches/{profileId}/{jobId}/dismiss",
+        "GET  /matches/{profileId}/{jobId}/materials",
+        "POST /matches/{profileId}/{jobId}/materials",
     },
 }));
 
@@ -110,4 +113,41 @@ app.MapPost("/matches/{profileId:long}/{jobId:long}/dismiss", async (
     return found ? Results.NoContent() : Results.NotFound();
 });
 
+// --- Başvuru materyali: CV + cover letter (Faz 4, on-demand) ---
+// Sistem materyali yalnız HAZIRLAR; göndermez. Üretim LLM gerektirir (Llm:Enabled).
+
+// Saklı materyali getirir (üretmez). Yoksa 404.
+app.MapGet("/matches/{profileId:long}/{jobId:long}/materials", async (
+    long profileId, long jobId, MaterialService materials, CancellationToken ct) =>
+{
+    var existing = await materials.GetExistingAsync(profileId, jobId, ct);
+    return existing is null ? Results.NotFound() : Results.Ok(ToDto(existing));
+});
+
+// Taze saklı materyal varsa döner; yoksa (ya da ?force=true ise) üretir.
+app.MapPost("/matches/{profileId:long}/{jobId:long}/materials", async (
+    long profileId, long jobId, bool? force, MaterialService materials, CancellationToken ct) =>
+{
+    var result = await materials.GetOrGenerateAsync(profileId, jobId, force ?? false, ct);
+    return result.Outcome switch
+    {
+        MaterialOutcome.Ready => Results.Ok(ToDto(result.Material!)),
+        MaterialOutcome.JobNotFound => Results.NotFound(new { error = "job_not_found" }),
+        MaterialOutcome.ProfileNotFound => Results.NotFound(new { error = "profile_not_found" }),
+        MaterialOutcome.CvMissing => Results.Conflict(new { error = "cv_missing", message = "Ana CV bulunamadı; data/cv.md oluşturun." }),
+        MaterialOutcome.LlmDisabled => Results.Conflict(new { error = "llm_disabled", message = "Materyal üretimi için Llm:Enabled=true gerekli." }),
+        _ => Results.Problem("unknown_outcome"),
+    };
+});
+
 app.Run();
+
+static object ToDto(JobScanner.Domain.Applications.ApplicationMaterial m) => new
+{
+    profileId = m.ProfileId,
+    jobId = m.JobId,
+    coverLetter = m.CoverLetter,
+    tailoredCvMarkdown = m.TailoredCvMarkdown,
+    language = m.Language,
+    generatedAt = m.GeneratedAt,
+};

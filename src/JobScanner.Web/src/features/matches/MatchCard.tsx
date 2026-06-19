@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { decisionLabels, explainSignal, legitimacyLabels, stateLabels } from '@/lib/labels'
 import { cn } from '@/lib/utils'
+import { MaterialsDialog } from './MaterialsDialog'
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent'
 
@@ -59,6 +60,7 @@ function formatPosted(iso: string | null): string {
 
 export function MatchCard({ m }: { m: MatchView }) {
   const [expanded, setExpanded] = useState(false)
+  const [showMaterials, setShowMaterials] = useState(false)
   const qc = useQueryClient()
 
   const mutation = useMutation({
@@ -134,11 +136,26 @@ export function MatchCard({ m }: { m: MatchView }) {
         >İlgilenmiyorum</Button>
         <Button
           size="sm"
+          variant="outline"
+          onClick={() => setShowMaterials(true)}
+        >✍ Materyal üret</Button>
+        <Button
+          size="sm"
           variant="ghost"
           className="ml-auto text-[color:var(--color-muted)]"
           onClick={() => setExpanded((x) => !x)}
         >{expanded ? 'Gizle' : 'Detay'}</Button>
       </div>
+
+      {showMaterials && (
+        <MaterialsDialog
+          profileId={m.profileId}
+          jobId={m.jobId}
+          title={m.title}
+          company={m.company || 'Bilinmeyen şirket'}
+          onClose={() => setShowMaterials(false)}
+        />
+      )}
 
       {expanded && (
         <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">

@@ -22,6 +22,9 @@ coverage*.xml
 .env
 secrets.json
 
+# Kişisel ana CV (Faz 4 materyal üretimi) — kişisel veri, repoya girmez. Şablon: data/cv.md.example
+data/cv.md
+
 # OS
 .DS_Store
 Thumbs.db

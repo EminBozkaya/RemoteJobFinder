@@ -270,7 +270,13 @@ Final = Math.Clamp(Raw, 0, 10)
 | **1 — Çekirdek** | Domain + Application(pipeline; extraction/decision stub) + Infrastructure(Jobicy source, Normalizer, Deduplicator, RuleFilter, EfJobRepository) + Worker. **Postgres**. Çıktı: log + DB. LLM/UI yok. |
 | **2 — Zekâ + durum** | `IEligibilityExtractor` (cache + gold-set testli) + `IEligibilityDecider` + Scoring + `UserJobMatch` durum makinesi + ilan yaşam döngüsü (Expired/arşiv). **Minimal görünüm** (CLI listesi veya basit read endpoint) — Telegram olmadığı için sonuçları görmenin köprüsü. |
 | **3 — Platform** | Web API (Identity+JWT) + React SPA + auth + çok-kullanıcı/çok-profil + apply/dismiss butonları. Kaynak genişletme (RemoteOK/WWR; sonra ATS). (Gerekirse Redis.) |
-| **4 — Otomasyon** | Yüksek skorluya CV + cover letter üretimi. |
+| **4 — Materyal üretimi** | İlana özel cover letter + uyarlanmış CV üretimi (on-demand, SPA butonu). |
+
+> **Faz 4 uygulandı (on-demand).** `IApplicationMaterialGenerator` (LLM, `IChatClient`) ana CV'den
+> (`data/cv.md`) ilana özel cover letter + uyarlanmış CV üretir; dil ilan diline uyar. Materyal
+> `(profil, ilan)` başına saklanır, `SourceCvHash+PromptVersion+ModelVersion+JobVersionHash` ile
+> tazelenir. **Karar/puan hâlâ saf C#'tadır**; LLM yalnız gerçek-çıkarımı + materyal üretir, karar vermez.
+> Sistem materyali **göndermez**, yalnız hazırlar.
 
 ---
 

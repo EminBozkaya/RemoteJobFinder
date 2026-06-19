@@ -25,6 +25,16 @@ export type MatchView = {
 
 export type MatchAction = 'save' | 'open' | 'apply' | 'dismiss'
 
+// Faz 4: ilana özel üretilmiş başvuru materyali (cover letter + uyarlanmış CV).
+export type ApplicationMaterial = {
+  profileId: number
+  jobId: number
+  coverLetter: string
+  tailoredCvMarkdown: string
+  language: string
+  generatedAt: string
+}
+
 export type MatchesQuery = {
   profileId?: number
   minScore?: number

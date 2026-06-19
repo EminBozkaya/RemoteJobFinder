@@ -1,3 +1,4 @@
+using JobScanner.Domain.Applications;
 using JobScanner.Domain.Eligibility;
 using JobScanner.Domain.Jobs;
 using JobScanner.Domain.Matching;
@@ -15,6 +16,7 @@ public sealed class JobScannerDbContext : DbContext
     public DbSet<CriteriaProfile> CriteriaProfiles => Set<CriteriaProfile>();
     public DbSet<EligibilityFacts> EligibilityFactsCache => Set<EligibilityFacts>();
     public DbSet<UserJobMatch> UserJobMatches => Set<UserJobMatch>();
+    public DbSet<ApplicationMaterial> ApplicationMaterials => Set<ApplicationMaterial>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

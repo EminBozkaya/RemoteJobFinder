@@ -8,6 +8,9 @@ public interface IJobRepository
     /// <summary>Var olan kaydı bulur (kimlik ile). Yoksa null.</summary>
     Task<JobPosting?> FindByIdentityAsync(string sourceName, string externalId, CancellationToken ct);
 
+    /// <summary>Surrogate Id ile bulur. Yoksa null.</summary>
+    Task<JobPosting?> FindByIdAsync(long id, CancellationToken ct);
+
     /// <summary>Ekler veya günceller; kalıcı Id'si atanmış ilanı döner.</summary>
     Task<JobPosting> UpsertAsync(JobPosting job, CancellationToken ct);
 
