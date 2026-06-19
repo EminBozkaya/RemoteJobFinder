@@ -1,3 +1,4 @@
+using System.Net;
 using JobScanner.Application.Abstractions;
 using JobScanner.Infrastructure.Enrichment;
 using JobScanner.Infrastructure.Extraction;
@@ -69,13 +70,20 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Tüm IJobSource HttpClient'ları için ortak ayar: UA + timeout + Polly resilience.</summary>
+    /// <summary>Tüm IJobSource HttpClient'ları için ortak ayar: UA + timeout + gzip + Polly resilience.</summary>
     private static void AddResilientSourceClient<TSource>(IServiceCollection services) where TSource : class
     {
         services.AddHttpClient<TSource>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(60);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+                client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip, deflate, br");
+            })
+            // gzip/brotli otomatik aç: RemoteOK gibi büyük (479KB→117KB) yanıtlarda
+            // transfer süresini ~4x kısaltır, timeout riskini düşürür.
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All,
             })
             .AddStandardResilienceHandler(o =>
             {
