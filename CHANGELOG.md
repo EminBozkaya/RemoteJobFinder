@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.4.0...v0.5.0) (2026-06-19)
+
+
+### Features
+
+* ilana özel CV + cover letter üretimi (Faz 4, on-demand) ([027b242](https://github.com/EminBozkaya/RemoteJobFinder/commit/027b24225b79376787a0ed35669799cb880acde3))
+
 ## [0.4.0](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.3.0...v0.4.0) (2026-06-19)
 
 
