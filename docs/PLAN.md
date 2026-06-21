@@ -271,12 +271,35 @@ Final = Math.Clamp(Raw, 0, 10)
 | **2 — Zekâ + durum** | `IEligibilityExtractor` (cache + gold-set testli) + `IEligibilityDecider` + Scoring + `UserJobMatch` durum makinesi + ilan yaşam döngüsü (Expired/arşiv). **Minimal görünüm** (CLI listesi veya basit read endpoint) — Telegram olmadığı için sonuçları görmenin köprüsü. |
 | **3 — Platform** | Web API (Identity+JWT) + React SPA + auth + çok-kullanıcı/çok-profil + apply/dismiss butonları. Kaynak genişletme (RemoteOK/WWR; sonra ATS). (Gerekirse Redis.) |
 | **4 — Materyal üretimi** | İlana özel cover letter + uyarlanmış CV üretimi (on-demand, SPA butonu). |
+| **5 — Dinamik/çok-rollü profil** | Kriter profilini arayüzden düzenlenebilir + dinamik yapmak (bugün .NET, yarın Java). |
+| **6 — Otomatik/yarı-otomatik başvuru** | Oracle VM'de 7/24, 3×/gün; bot ilana gidip materyalle başvuruyu hazırlar/gönderir. **En son.** |
 
 > **Faz 4 uygulandı (on-demand).** `IApplicationMaterialGenerator` (LLM, `IChatClient`) ana CV'den
 > (`data/cv.md`) ilana özel cover letter + uyarlanmış CV üretir; dil ilan diline uyar. Materyal
 > `(profil, ilan)` başına saklanır, `SourceCvHash+PromptVersion+ModelVersion+JobVersionHash` ile
 > tazelenir. **Karar/puan hâlâ saf C#'tadır**; LLM yalnız gerçek-çıkarımı + materyal üretir, karar vermez.
 > Sistem materyali **göndermez**, yalnız hazırlar.
+
+> **Faz 5 — Dinamik/çok-rollü profil (planlandı).** `CriteriaProfile` zaten DB entity'si ve decider/scoring
+> onu okuyor; eksik olan **arayüzden düzenleme + model genişletme**. Bu, CLAUDE.md'deki "generic
+> Target/Operator rule-builder yapma" kuralını ihlal etmez — **yapılandırılmış profil editörü**
+> (checkbox / etiket girişi / seviye), generic kural-motoru değil.
+> - **5a:** Var olan alanlar için editör (UI + kaydet-API + CRUD): RequiredKeywords / ForbiddenKeywords /
+>   NiceKeywords (etiket girişi: yaz-enter), ContractTypes (EOR/B2B/contractor checkbox), ResidenceCountry,
+>   TimezoneToleranceHours, Salary, MinScoreToShow. *Yüksek değer, düşük risk; "bugün .NET, yarın Java"yı çözer.*
+> - **5b:** Model genişletme: diller+seviye, **yetkinlikler `Skill { Name, SelfRating(1-10), Years }`**,
+>   soft skill → decider/scoring (+ gerekirse extraction). İki boyut ayrı kullanılır: **öz-puan yalnız
+>   bizim skorumuza** besler (ilanla kıyaslanamaz); **tecrübe yılı ilan şartıyla kıyaslanır** (ör. "React min 3 yıl").
+>   İlandan `{skill, minYears}` çıkarımı için **prompt genişler**. Yıl-eksiği **sert eleme değil, yumuşak ceza/dikkat**
+>   (deneyim şartları genelde esnek).
+> - **5c (opsiyonel):** Kullanıcının yazdığı terimleri **AI ile normalize** (yazım/jargon düzeltme, onaya sunma;
+>   alias haritası da alternatif) + puan ağırlıklarını kullanıcıya açma (sürükle-sırala).
+
+> **Faz 6 — Otomatik/yarı-otomatik başvuru (en son, en kompleks).** Oracle VM + LLM, 8 saatte bir tarama;
+> yüksek skorlu ilanlara bot orijinal linkte (Greenhouse/Lever/Workday/şirket formu — **site-başına akış**)
+> uygun CV + cover letter ile başvuruyu doldurur. Zorluklar: anti-bot/CAPTCHA/login, hesap askı riski, açık
+> uçlu sorular. **Çekirdek ilkenin ("sistem başvuru göndermez") bilinçli tersine çevrilmesi** — büyük ihtimalle
+> **yarı-otomatik** (bot hazırlar, kullanıcı tek tıkla onaylayıp gönderir) en sağlıklı tasarım.
 
 ---
 
