@@ -23,6 +23,12 @@ public interface IUserMatchRepository
     /// <summary>Arşivlenmiş ilanlara ait açık eşleşmeleri (New/Saved/Opened) Expired yapar; sayısını döner.</summary>
     Task<int> ExpireOpenMatchesForArchivedJobsAsync(CancellationToken ct);
 
+    /// <summary>
+    /// Terminal olmayan (New/Saved/Opened) eşleşmeyi siler; Applied/Dismissed (kullanıcı kararı) korunur.
+    /// Kriter değişince artık uygun olmayan ilanları listeden düşürmek için (RecomputeService).
+    /// </summary>
+    Task DeleteNonTerminalAsync(long profileId, long jobId, CancellationToken ct);
+
     /// <summary>Okuma: skora göre sıralı eşleşmeler (Expired/Dismissed hariç). source: kaynak SourceName ile filtrele (null=hepsi).</summary>
     Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, string? source, CancellationToken ct);
 

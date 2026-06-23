@@ -15,4 +15,20 @@ public sealed class EfProfileRepository : IProfileRepository
             .AsNoTracking()
             .Where(p => p.IsActive)
             .ToListAsync(ct);
+
+    public async Task<bool> UpdateAsync(long profileId, ProfileEdit edit, CancellationToken ct)
+    {
+        var profile = await _db.CriteriaProfiles.FirstOrDefaultAsync(p => p.Id == profileId, ct);
+        if (profile is null) return false;
+
+        profile.ResidenceCountry = edit.ResidenceCountry;
+        profile.RequiredKeywords = edit.RequiredKeywords;
+        profile.ForbiddenKeywords = edit.ForbiddenKeywords;
+        profile.NiceKeywords = edit.NiceKeywords;
+        profile.TimezoneToleranceHours = edit.TimezoneToleranceHours;
+        profile.MinScoreToShow = edit.MinScoreToShow;
+
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
 }

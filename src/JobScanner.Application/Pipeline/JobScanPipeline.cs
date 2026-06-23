@@ -103,9 +103,10 @@ public sealed class JobScanPipeline
             var persisted = await _jobs.UpsertAsync(job, ct);
             newOrChanged++;
 
-            // 4. Ucuz tipli kural elemesi
-            var rf = _ruleFilter.Evaluate(persisted);
-            if (rf.Decision == FilterDecision.Eliminate)
+            // 4. Ucuz tipli kural elemesi (profil bazlı; forbidden keyword'ler profilden gelir).
+            //    Tüm aktif profiller eliyorsa pahalı extraction'a hiç girme.
+            var ruleByProfile = activeProfiles.ToDictionary(p => p.Id, p => _ruleFilter.Evaluate(persisted, p));
+            if (ruleByProfile.Values.All(r => r.Decision == FilterDecision.Eliminate))
             {
                 eliminated++;
                 continue;
@@ -156,6 +157,7 @@ public sealed class JobScanPipeline
             // 6. Her aktif profil için: KARAR + PUAN (saf C#, token yok)
             foreach (var profile in activeProfiles)
             {
+                if (ruleByProfile[profile.Id].Decision == FilterDecision.Eliminate) continue; // bu profil için elendi
                 if (await _matches.IsClosedAsync(profile.Id, persisted.Id, ct)) continue;
 
                 var (decision, reasons) = _decider.Decide(facts, profile);

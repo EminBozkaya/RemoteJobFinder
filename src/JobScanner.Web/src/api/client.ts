@@ -1,4 +1,4 @@
-import type { ApplicationMaterial, MatchAction, MatchView, MatchesQuery } from './types'
+import type { ApplicationMaterial, MatchAction, MatchView, MatchesQuery, Profile, ProfileEdit } from './types'
 
 // Dev'de vite.config.ts /api -> :5163 proxy'ler. Prod'da ayni origin'den servis.
 const BASE = '/api'
@@ -33,6 +33,19 @@ export async function fetchMatches(q: MatchesQuery = {}): Promise<MatchView[]> {
 
 export async function mutateMatch(profileId: number, jobId: number, action: MatchAction): Promise<void> {
   await http(`/matches/${profileId}/${jobId}/${action}`, { method: 'POST' })
+}
+
+export async function fetchProfile(): Promise<Profile> {
+  return http<Profile>('/profile')
+}
+
+// Kaydet → backend cache'ten saf C# yeniden hesaplar; { recomputed } döner.
+export async function updateProfile(id: number, edit: ProfileEdit): Promise<{ recomputed: number }> {
+  return http<{ recomputed: number }>(`/profile/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(edit),
+  })
 }
 
 // Taze saklı materyal varsa onu döner (token harcamadan), yoksa LLM ile üretir.

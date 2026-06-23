@@ -9,7 +9,7 @@ import { MatchCard } from './MatchCard'
 
 const ALL_DECISIONS: DecisionKind[] = ['Eligible', 'Uncertain', 'Ineligible']
 
-export function MatchesPage() {
+export function MatchesPage({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const [minScore, setMinScore] = useState(0)
   const [take, setTake] = useState(50)
   const [source, setSource] = useState<KnownSource | ''>('')
@@ -45,6 +45,9 @@ export function MatchesPage() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          {onOpenSettings && (
+            <Button variant="outline" size="sm" onClick={onOpenSettings}>⚙ Kriterler</Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             {isFetching ? 'Yükleniyor…' : 'Yenile'}
           </Button>

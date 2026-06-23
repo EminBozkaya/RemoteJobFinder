@@ -2,18 +2,13 @@ using JobScanner.Application.Abstractions;
 using JobScanner.Application.Filtering;
 using JobScanner.Domain.Enums;
 using JobScanner.Domain.Jobs;
-using Microsoft.Extensions.Options;
+using Xunit;
 
 namespace JobScanner.UnitTests;
 
 public sealed class RuleFilterTests
 {
-    private static RuleFilter Build(string[]? forbidden = null, string[]? required = null) =>
-        new(Options.Create(new RuleFilterOptions
-        {
-            ForbiddenKeywords = forbidden ?? [],
-            RequiredKeywords = required ?? [],
-        }));
+    private static readonly RuleFilter Filter = new();
 
     private static JobPosting Job(
         string title = "Senior .NET Developer",
@@ -33,53 +28,45 @@ public sealed class RuleFilterTests
         };
 
     [Fact]
-    public void Passes_when_no_rules_configured()
+    public void Passes_when_no_forbidden_keywords()
     {
-        var result = Build().Evaluate(Job());
+        var result = Filter.Evaluate(Job(), TestFactory.Profile(forbidden: []));
         Assert.Equal(FilterDecision.Pass, result.Decision);
     }
 
     [Fact]
     public void Eliminates_when_forbidden_keyword_in_title()
     {
-        var result = Build(forbidden: ["wordpress"]).Evaluate(Job(title: "WordPress Engineer"));
+        var result = Filter.Evaluate(Job(title: "WordPress Engineer"), TestFactory.Profile(forbidden: ["wordpress"]));
         Assert.Equal(FilterDecision.Eliminate, result.Decision);
     }
 
     [Fact]
     public void Eliminates_when_forbidden_keyword_in_description()
     {
-        var result = Build(forbidden: ["unpaid"]).Evaluate(Job(description: "This is an unpaid internship."));
+        var result = Filter.Evaluate(Job(description: "This is an unpaid internship."), TestFactory.Profile(forbidden: ["unpaid"]));
         Assert.Equal(FilterDecision.Eliminate, result.Decision);
     }
 
     [Fact]
     public void Forbidden_match_is_case_insensitive()
     {
-        var result = Build(forbidden: ["PHP"]).Evaluate(Job(title: "Senior php Developer"));
+        var result = Filter.Evaluate(Job(title: "Senior php Developer"), TestFactory.Profile(forbidden: ["PHP"]));
         Assert.Equal(FilterDecision.Eliminate, result.Decision);
     }
 
     [Fact]
-    public void Eliminates_when_required_keywords_none_present()
+    public void Required_keywords_do_NOT_eliminate_anymore()
     {
-        var result = Build(required: [".net", "c#"]).Evaluate(Job(title: "Java Developer", description: "Spring Boot"));
-        Assert.Equal(FilterDecision.Eliminate, result.Decision);
-    }
-
-    [Fact]
-    public void Passes_when_at_least_one_required_keyword_present()
-    {
-        var result = Build(required: [".net", "c#"]).Evaluate(Job(description: "We use C# heavily."));
+        // Faz 5a: required keyword'ler eleyici değil (scoring sinyali). Eşleşmese bile geçer.
+        var result = Filter.Evaluate(Job(title: "Java Developer", description: "Spring Boot"), TestFactory.Profile(required: [".net", "c#"]));
         Assert.Equal(FilterDecision.Pass, result.Decision);
     }
 
     [Fact]
     public void Eliminates_non_remote_workmode()
     {
-        // WorkMode su an tek deger (Remote); enum disi degerle eleme yolu dogrulanir.
-        var job = Job(workMode: (WorkMode)999);
-        var result = Build().Evaluate(job);
+        var result = Filter.Evaluate(Job(workMode: (WorkMode)999), TestFactory.Profile());
         Assert.Equal(FilterDecision.Eliminate, result.Decision);
     }
 }

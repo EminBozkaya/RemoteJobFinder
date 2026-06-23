@@ -25,6 +25,27 @@ export type MatchView = {
 
 export type MatchAction = 'save' | 'open' | 'apply' | 'dismiss'
 
+// Faz 5a: arayüzden düzenlenebilir kriter profili.
+export type Profile = {
+  id: number
+  name: string
+  residenceCountry: string
+  requiredKeywords: string[]
+  forbiddenKeywords: string[]
+  niceKeywords: string[]
+  timezoneToleranceHours: number
+  minScoreToShow: number
+}
+
+export type ProfileEdit = {
+  residenceCountry: string
+  requiredKeywords: string[]
+  forbiddenKeywords: string[]
+  niceKeywords: string[]
+  timezoneToleranceHours: number
+  minScoreToShow: number
+}
+
 // Faz 4: ilana özel üretilmiş başvuru materyali (cover letter + uyarlanmış CV).
 export type ApplicationMaterial = {
   profileId: number
@@ -42,5 +63,5 @@ export type MatchesQuery = {
   source?: string
 }
 
-export const KNOWN_SOURCES = ['Jobicy', 'RemoteOK', 'WeWorkRemotely'] as const
+export const KNOWN_SOURCES = ['Jobicy', 'RemoteOK', 'WeWorkRemotely', 'Remotive', 'Arbeitnow'] as const
 export type KnownSource = typeof KNOWN_SOURCES[number]

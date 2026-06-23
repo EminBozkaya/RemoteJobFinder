@@ -13,17 +13,21 @@ public sealed class CriteriaProfile
     public required string Name { get; init; }
 
     public WorkMode WorkMode { get; init; } = WorkMode.Remote;
-    public string ResidenceCountry { get; init; } = "TR";
 
-    public IReadOnlyList<string> RequiredKeywords { get; init; } = [];
-    public IReadOnlyList<string> ForbiddenKeywords { get; init; } = [];
-    public IReadOnlyList<string> NiceKeywords { get; init; } = [];
+    // Faz 5a: arayüzden düzenlenebilir alanlar (set). Değişince RecomputeService cache'ten yeniden hesaplar.
+    public string ResidenceCountry { get; set; } = "TR";
+
+    public IReadOnlyList<string> RequiredKeywords { get; set; } = [];
+    public IReadOnlyList<string> ForbiddenKeywords { get; set; } = [];
+    public IReadOnlyList<string> NiceKeywords { get; set; } = [];
+
+    // 5b'ye ertelendi (henüz decider/scoring kullanmıyor): ContractTypes, Salary.
     public IReadOnlyList<string> ContractTypes { get; init; } = [];
 
-    public int TimezoneToleranceHours { get; init; } = 4;
+    public int TimezoneToleranceHours { get; set; } = 4;
     public decimal? SalaryMin { get; init; }
     public string? SalaryCurrency { get; init; }
-    public double MinScoreToShow { get; init; } = 5.0;
+    public double MinScoreToShow { get; set; } = 5.0;
 
     public bool IsActive { get; init; } = true;
 }

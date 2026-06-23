@@ -60,6 +60,8 @@ app.MapGet("/", () => Results.Ok(new
         "POST /matches/{profileId}/{jobId}/dismiss",
         "GET  /matches/{profileId}/{jobId}/materials",
         "POST /matches/{profileId}/{jobId}/materials",
+        "GET  /profile",
+        "PUT  /profile/{id}",
     },
 }));
 
@@ -140,7 +142,51 @@ app.MapPost("/matches/{profileId:long}/{jobId:long}/materials", async (
     };
 });
 
+// --- Kriter profili: oku + düzenle (Faz 5a) ---
+// Düzenleme sonrası RecomputeService cache'ten saf C# yeniden hesaplar (token harcamaz).
+
+app.MapGet("/profile", async (IProfileRepository profiles, CancellationToken ct) =>
+{
+    var profile = (await profiles.GetActiveAsync(ct)).FirstOrDefault();
+    return profile is null ? Results.NotFound() : Results.Ok(new
+    {
+        id = profile.Id,
+        name = profile.Name,
+        residenceCountry = profile.ResidenceCountry,
+        requiredKeywords = profile.RequiredKeywords,
+        forbiddenKeywords = profile.ForbiddenKeywords,
+        niceKeywords = profile.NiceKeywords,
+        timezoneToleranceHours = profile.TimezoneToleranceHours,
+        minScoreToShow = profile.MinScoreToShow,
+    });
+});
+
+app.MapPut("/profile/{id:long}", async (
+    long id, ProfileEdit body, IProfileRepository profiles, RecomputeService recompute, CancellationToken ct) =>
+{
+    var clean = new ProfileEdit(
+        ResidenceCountry: (body.ResidenceCountry ?? "TR").Trim(),
+        RequiredKeywords: CleanKeywords(body.RequiredKeywords),
+        ForbiddenKeywords: CleanKeywords(body.ForbiddenKeywords),
+        NiceKeywords: CleanKeywords(body.NiceKeywords),
+        TimezoneToleranceHours: Math.Clamp(body.TimezoneToleranceHours, 0, 24),
+        MinScoreToShow: Math.Clamp(body.MinScoreToShow, 0, 10));
+
+    var updated = await profiles.UpdateAsync(id, clean, ct);
+    if (!updated) return Results.NotFound();
+
+    var matched = await recompute.RecomputeAllAsync(ct);
+    return Results.Ok(new { recomputed = matched });
+});
+
 app.Run();
+
+static IReadOnlyList<string> CleanKeywords(IReadOnlyList<string>? raw) =>
+    (raw ?? [])
+        .Where(k => !string.IsNullOrWhiteSpace(k))
+        .Select(k => k.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
 
 static object ToDto(JobScanner.Domain.Applications.ApplicationMaterial m) => new
 {

@@ -20,6 +20,9 @@ public sealed class EfJobRepository : IJobRepository
     public async Task<JobPosting?> FindByIdAsync(long id, CancellationToken ct) =>
         await _db.JobPostings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
 
+    public async Task<IReadOnlyList<JobPosting>> GetActiveAsync(CancellationToken ct) =>
+        await _db.JobPostings.AsNoTracking().Where(x => x.Status == JobStatus.Active).ToListAsync(ct);
+
     public async Task<JobPosting> UpsertAsync(JobPosting job, CancellationToken ct)
     {
         var existing = await _db.JobPostings

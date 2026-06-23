@@ -77,6 +77,12 @@ public sealed class EfUserMatchRepository : IUserMatchRepository
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.State, MatchState.Expired), ct);
     }
 
+    public async Task DeleteNonTerminalAsync(long profileId, long jobId, CancellationToken ct) =>
+        await _db.UserJobMatches
+            .Where(m => m.ProfileId == profileId && m.JobId == jobId &&
+                        (m.State == MatchState.New || m.State == MatchState.Saved || m.State == MatchState.Opened))
+            .ExecuteDeleteAsync(ct);
+
     public async Task<IReadOnlyList<MatchView>> GetRankedAsync(long? profileId, double minScore, int take, string? source, CancellationToken ct) =>
         await (
             from m in _db.UserJobMatches.AsNoTracking()

@@ -153,6 +153,7 @@ public sealed class MaterialServiceTests
     private sealed class FakeJobRepo(JobPosting? job) : IJobRepository
     {
         public Task<JobPosting?> FindByIdAsync(long id, CancellationToken ct) => Task.FromResult(job);
+        public Task<IReadOnlyList<JobPosting>> GetActiveAsync(CancellationToken ct) => throw new NotImplementedException();
         public Task<JobPosting?> FindByIdentityAsync(string sourceName, string externalId, CancellationToken ct) => throw new NotImplementedException();
         public Task<JobPosting> UpsertAsync(JobPosting j, CancellationToken ct) => throw new NotImplementedException();
         public Task TouchLastSeenAsync(string sourceName, string externalId, DateTimeOffset seenAt, CancellationToken ct) => throw new NotImplementedException();
@@ -164,6 +165,7 @@ public sealed class MaterialServiceTests
     {
         public Task<IReadOnlyList<CriteriaProfile>> GetActiveAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<CriteriaProfile>>([profile]);
+        public Task<bool> UpdateAsync(long id, ProfileEdit edit, CancellationToken ct) => throw new NotImplementedException();
     }
 
     private sealed class FakeCvSource(CvDocument? cv) : ICvSource

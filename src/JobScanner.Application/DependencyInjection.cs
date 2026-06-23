@@ -15,7 +15,6 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration config)
     {
         services.Configure<PipelineOptions>(config.GetSection(PipelineOptions.SectionName));
-        services.Configure<RuleFilterOptions>(config.GetSection(RuleFilterOptions.SectionName));
         services.Configure<DeciderOptions>(config.GetSection(DeciderOptions.SectionName));
 
         // Saf is mantigi (yan etkisiz)
@@ -25,6 +24,7 @@ public static class DependencyInjection
 
         services.AddScoped<JobScanPipeline>();
         services.AddScoped<MaterialService>();
+        services.AddScoped<RecomputeService>();
         return services;
     }
 }

@@ -11,6 +11,9 @@ public interface IJobRepository
     /// <summary>Surrogate Id ile bulur. Yoksa null.</summary>
     Task<JobPosting?> FindByIdAsync(long id, CancellationToken ct);
 
+    /// <summary>Tüm aktif (arşivlenmemiş) ilanlar — kriter değişince yeniden hesaplama için.</summary>
+    Task<IReadOnlyList<JobPosting>> GetActiveAsync(CancellationToken ct);
+
     /// <summary>Ekler veya günceller; kalıcı Id'si atanmış ilanı döner.</summary>
     Task<JobPosting> UpsertAsync(JobPosting job, CancellationToken ct);
 
