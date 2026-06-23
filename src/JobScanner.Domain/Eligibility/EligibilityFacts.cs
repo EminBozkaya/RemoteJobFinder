@@ -27,4 +27,5 @@ public sealed record EligibilityFacts(
     bool? IsLikelyGhost,                        // "always hiring"/"talent pool"/aşırı jenerik JD sinyali (ghost/evergreen)
     double Confidence,
     DateTimeOffset ExtractedAt,
-    string RawJson);
+    string RawJson,
+    IReadOnlyList<SkillRequirement>? RequiredExperience = null);  // Faz 5b: ilanın "X için min N yıl" şartları

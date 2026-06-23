@@ -33,7 +33,7 @@ public sealed class RecomputeServiceTests
         var svc = new RecomputeService(
             new FakeJobRepo([job1, job2]),
             new FakeFactsCache(facts),
-            new FakeProfileRepo(TestFactory.Profile(required: [".net", "c#"])),
+            new FakeProfileRepo(TestFactory.Profile(skills: [new SkillCriterion(".net", 9, 5), new SkillCriterion("c#", 9, 5)])),
             new RuleFilter(),
             new EligibilityDecider(Options.Create(new DeciderOptions { MinConfidence = 0.4 })),
             new ScoringEngine(clock),

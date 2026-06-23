@@ -28,5 +28,12 @@ internal sealed class EligibilityFactsConfiguration : IEntityTypeConfiguration<E
             .HasColumnType("jsonb")
             .HasColumnName("allowed_countries");
         p.Metadata.SetValueComparer(StringListConverter.NullableComparer);
+
+        // Faz 5b: ilanın istediği asgari tecrübe yılları (jsonb, nullable record listesi)
+        var re = b.Property(x => x.RequiredExperience)
+            .HasConversion(JsonListConverter.NullableConverter<SkillRequirement>())
+            .HasColumnType("jsonb")
+            .HasColumnName("required_experience");
+        re.Metadata.SetValueComparer(JsonListConverter.NullableComparer<SkillRequirement>());
     }
 }

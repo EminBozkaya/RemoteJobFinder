@@ -243,14 +243,20 @@ hangi argüman/eşik). Spine: `JobScanner.Application/Pipeline/JobScanPipeline.R
   - `Confidence < MinConfidence` (**0.4**) → **Uncertain**. Aksi halde **Eligible**.
   - > Not: çalışma TÜRÜ (B2B/employee/EOR) tek başına eleyici değildir; önemli olan **coğrafya + izin + taşınma**.
 
-  **b) `ScoringEngine.Score(job, facts, profile)`** → `0–10` (clamp). Formül:
-  `MatchPercent×5 + TimezoneFit(0–3) + Freshness(0–2) + EngagementFit(0–1)`:
-  - **MatchPercent:** RequiredKeywords (başlıkta tam **1.0**, gövdede **0.6**); NiceKeywords **+0.3** bonus;
-    ForbiddenKeywords **−0.5** ceza.
+  **b) `ScoringEngine.Score(job, facts, profile)`** → `0–10` (clamp). Formül (Faz 5b):
+  `SkillFit×5 + TimezoneFit(0–3) + Freshness(0–2) + EngagementFit(0–1) + ExperienceFit(−2..0)`:
+  - **SkillFit (0–1):** kullanıcının yetkinliklerinin (Skills) ilanda görünmesi, **öz-puanla (1–10) ağırlıklı**
+    (başlıkta tam **1.0**, gövdede **0.6**). Yetkinlik yoksa 1.0 (kısıt yok). *Keyword'lerin yerini aldı.*
+  - **ExperienceFit (−2..0):** ilan "X için min N yıl" istiyorsa (`facts.RequiredExperience`) ve kullanıcının
+    yılı azsa **yumuşak ceza** (eleme değil); sahip olunmayan yetkinlik SkillFit'i zaten düşürür.
   - **TimezoneFit:** TR=UTC+3; kısıt yoksa 3.0; |Δ| ≤ tolerans (**4s**) → 3.0; ≤ tol+2 → 1.5; üstü 0.
   - **Freshness:** ~7 günlük yarı-ömür.
   - **EngagementFit:** EOR/EmployeeViaEor → **1.0** (ideal, şirket gerekmez); B2B/Contractor/Freelance → **0.4**; diğer 0.
   - `score.Final < profile.MinScoreToShow` (**5.0**) → panele yazılmaz.
+
+  > **Faz 5b not:** Yetkinlikler/diller/soft-skill'ler profilde tutulur, arayüzden düzenlenir; öz-puan
+  > scoring'e, tecrübe yılı ilan şartına beslenir. İlanın istediği yıl çıkarımı prompt **v5** ile gelir;
+  > model/prompt sürümü değişince içerik değişmeyen ilanlar da yeniden çıkarılır (cache tazelenir).
 
   **c)** Geçerse `IUserMatchRepository.UpsertAsync(...)` → `user_job_matches` (score, breakdown JSON,
   decision, reasons JSON, legitimacy, signals JSON). State korunur (varsa).

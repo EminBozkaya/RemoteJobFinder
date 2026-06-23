@@ -1,12 +1,18 @@
+using System.Text.Json.Serialization;
 using JobScanner.Application;
 using JobScanner.Application.Abstractions;
 using JobScanner.Application.Applications;
+using JobScanner.Domain.Users;
 using JobScanner.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Enum'lar JSON'da isimle (string) gidip gelsin (ör. LanguageLevel "Advanced").
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // React SPA dev sunucusundan CORS (Vite varsayilan :5173). Prod'da SPA ayni origin'den
 // servis edilebilir; ek origin'ler appsettings.json "Cors:AllowedOrigins" ile genisletilir.
@@ -153,9 +159,10 @@ app.MapGet("/profile", async (IProfileRepository profiles, CancellationToken ct)
         id = profile.Id,
         name = profile.Name,
         residenceCountry = profile.ResidenceCountry,
-        requiredKeywords = profile.RequiredKeywords,
         forbiddenKeywords = profile.ForbiddenKeywords,
-        niceKeywords = profile.NiceKeywords,
+        skills = profile.Skills,
+        languages = profile.Languages,
+        softSkills = profile.SoftSkills,
         timezoneToleranceHours = profile.TimezoneToleranceHours,
         minScoreToShow = profile.MinScoreToShow,
     });
@@ -166,9 +173,10 @@ app.MapPut("/profile/{id:long}", async (
 {
     var clean = new ProfileEdit(
         ResidenceCountry: (body.ResidenceCountry ?? "TR").Trim(),
-        RequiredKeywords: CleanKeywords(body.RequiredKeywords),
         ForbiddenKeywords: CleanKeywords(body.ForbiddenKeywords),
-        NiceKeywords: CleanKeywords(body.NiceKeywords),
+        Skills: CleanSkills(body.Skills),
+        Languages: CleanLanguages(body.Languages),
+        SoftSkills: CleanKeywords(body.SoftSkills),
         TimezoneToleranceHours: Math.Clamp(body.TimezoneToleranceHours, 0, 24),
         MinScoreToShow: Math.Clamp(body.MinScoreToShow, 0, 10));
 
@@ -186,6 +194,22 @@ static IReadOnlyList<string> CleanKeywords(IReadOnlyList<string>? raw) =>
         .Where(k => !string.IsNullOrWhiteSpace(k))
         .Select(k => k.Trim())
         .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+static IReadOnlyList<SkillCriterion> CleanSkills(IReadOnlyList<SkillCriterion>? raw) =>
+    (raw ?? [])
+        .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+        .GroupBy(s => s.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+        .Select(g => g.First())
+        .Select(s => new SkillCriterion(s.Name.Trim(), Math.Clamp(s.SelfRating, 1, 10), Math.Clamp(s.Years, 0, 50)))
+        .ToList();
+
+static IReadOnlyList<LanguageCriterion> CleanLanguages(IReadOnlyList<LanguageCriterion>? raw) =>
+    (raw ?? [])
+        .Where(l => !string.IsNullOrWhiteSpace(l.Name))
+        .GroupBy(l => l.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+        .Select(g => g.First())
+        .Select(l => new LanguageCriterion(l.Name.Trim(), l.Level))
         .ToList();
 
 static object ToDto(JobScanner.Domain.Applications.ApplicationMaterial m) => new

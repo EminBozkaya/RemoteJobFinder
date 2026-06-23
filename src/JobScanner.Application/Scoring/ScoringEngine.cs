@@ -7,8 +7,9 @@ using JobScanner.Domain.Users;
 namespace JobScanner.Application.Scoring;
 
 /// <summary>
-/// Saf C# puanlama (PLAN §7): MatchPercent*5 + TimezoneFit(0-3) + Freshness(0-2),
-/// 0-10'a clamp'lenir. Açıklanabilir döküm üretir. ML yok; ağırlıklı toplam.
+/// Saf C# puanlama: SkillFit*5 + TimezoneFit(0-3) + Freshness(0-2) + EngagementFit(0-1)
+/// + ExperienceFit(-2..0), 0-10'a clamp. Faz 5b: keyword yerine öz-puanlı yetkinlikler;
+/// ilanın istediği tecrübe yılı eksikse yumuşak ceza. Açıklanabilir döküm üretir; ML yok.
 /// </summary>
 public sealed class ScoringEngine : IScoringEngine
 {
@@ -23,23 +24,74 @@ public sealed class ScoringEngine : IScoringEngine
 
     public JobScore Score(JobPosting job, EligibilityFacts facts, CriteriaProfile profile)
     {
-        var matchPercent = MatchPercent(job, profile, out var matchDetail);
+        var skillFit = SkillFit(job, profile, out var skillDetail);
         var timezoneFit = TimezoneFit(facts.TimezoneRequirementRaw, profile.TimezoneToleranceHours, out var tzDetail);
         var freshness = Freshness(job.PostedAt ?? job.FirstSeenAt);
         var engagementFit = EngagementFit(facts, out var engDetail);
+        var experienceFit = ExperienceFit(facts.RequiredExperience, profile, out var expDetail);
 
-        var raw = matchPercent * 5.0 + timezoneFit + freshness + engagementFit;
+        var raw = skillFit * 5.0 + timezoneFit + freshness + engagementFit + experienceFit;
         var final = Math.Clamp(raw, 0, 10);
 
         var breakdown = new[]
         {
-            new ScoreContribution($"MatchPercent ({matchDetail})", Math.Round(matchPercent * 5.0, 2)),
+            new ScoreContribution($"SkillFit ({skillDetail})", Math.Round(skillFit * 5.0, 2)),
             new ScoreContribution($"TimezoneFit ({tzDetail})", Math.Round(timezoneFit, 2)),
             new ScoreContribution("Freshness", Math.Round(freshness, 2)),
             new ScoreContribution($"EngagementFit ({engDetail})", Math.Round(engagementFit, 2)),
+            new ScoreContribution($"ExperienceFit ({expDetail})", Math.Round(experienceFit, 2)),
         };
 
         return new JobScore(Math.Round(final, 2), breakdown);
+    }
+
+    /// <summary>0-1: kullanıcının yetkinliklerinin ilanda görünmesi, öz-puanla (1-10) ağırlıklı.</summary>
+    private static double SkillFit(JobPosting job, CriteriaProfile profile, out string detail)
+    {
+        if (profile.Skills.Count == 0)
+        {
+            detail = "kısıt yok";
+            return 1.0;
+        }
+
+        double weightSum = 0, scoreSum = 0;
+        foreach (var s in profile.Skills)
+        {
+            var w = Math.Clamp(s.SelfRating, 1, 10) / 10.0;
+            weightSum += w;
+            scoreSum += w * Presence(s.Name, job.Title, job.DescriptionText);
+        }
+
+        if (weightSum == 0) { detail = "kısıt yok"; return 1.0; }
+        var pct = scoreSum / weightSum;
+        detail = $"{profile.Skills.Count} yetkinlik={pct:0.00}";
+        return pct;
+    }
+
+    /// <summary>-2..0: ilan "X için min N yıl" istiyor ve kullanıcının yılı azsa yumuşak ceza (eleme değil).</summary>
+    private static double ExperienceFit(IReadOnlyList<SkillRequirement>? required, CriteriaProfile profile, out string detail)
+    {
+        if (required is null || required.Count == 0 || profile.Skills.Count == 0)
+        {
+            detail = "-";
+            return 0.0;
+        }
+
+        double penalty = 0;
+        var gaps = new List<string>();
+        foreach (var req in required)
+        {
+            var mine = profile.Skills.FirstOrDefault(s => string.Equals(s.Name, req.Skill, StringComparison.OrdinalIgnoreCase));
+            if (mine is null) continue; // sahip olmadığım yetkinlik SkillFit'i zaten düşürüyor
+            if (mine.Years < req.MinYears)
+            {
+                penalty += Math.Clamp((req.MinYears - mine.Years) * 0.25, 0, 1);
+                gaps.Add($"{req.Skill} {mine.Years}/{req.MinYears}y");
+            }
+        }
+
+        detail = gaps.Count == 0 ? "tam" : string.Join(", ", gaps);
+        return -Math.Min(penalty, 2.0);
     }
 
     /// <summary>
@@ -62,36 +114,8 @@ public sealed class ScoringEngine : IScoringEngine
         return 0.0;
     }
 
-    /// <summary>must/nice/negative keyword eşleşmesi (başlık ağırlıklı), [0,1].</summary>
-    private static double MatchPercent(JobPosting job, CriteriaProfile profile, out string detail)
-    {
-        var title = job.Title;
-        var body = job.DescriptionText;
-
-        double requiredScore;
-        if (profile.RequiredKeywords.Count == 0)
-        {
-            requiredScore = 1.0; // kısıt yoksa tam
-        }
-        else
-        {
-            var sum = profile.RequiredKeywords.Sum(k => KeywordWeight(k, title, body));
-            requiredScore = sum / profile.RequiredKeywords.Count;
-        }
-
-        var niceBonus = profile.NiceKeywords.Count == 0
-            ? 0.0
-            : 0.3 * profile.NiceKeywords.Sum(k => KeywordWeight(k, title, body)) / profile.NiceKeywords.Count;
-
-        var negativePenalty = profile.ForbiddenKeywords.Any(k => Contains(title, k) || Contains(body, k)) ? 0.5 : 0.0;
-
-        var pct = Math.Clamp(requiredScore + niceBonus - negativePenalty, 0, 1);
-        detail = $"req={requiredScore:0.00} nice=+{niceBonus:0.00} neg=-{negativePenalty:0.00}";
-        return pct;
-    }
-
     /// <summary>Başlıkta tam, gövdede kısmi kredi; bulunmazsa 0.</summary>
-    private static double KeywordWeight(string keyword, string title, string body)
+    private static double Presence(string keyword, string title, string body)
     {
         if (Contains(title, keyword)) return TitleWeight;
         if (Contains(body, keyword)) return BodyWeight;

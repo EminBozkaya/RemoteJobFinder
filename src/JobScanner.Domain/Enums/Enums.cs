@@ -15,3 +15,6 @@ public enum JobStatus { Active, Archived }
 /// Karar (Decision) ile bağımsız: Eligible bir ilan da Suspicious olabilir.
 /// </summary>
 public enum LegitimacyConfidence { High, Caution, Suspicious }
+
+/// <summary>Yabancı dil seviyesi (basit kademe). UI'da TR etiketlerle gösterilir.</summary>
+public enum LanguageLevel { Beginner, Intermediate, Advanced, Native }

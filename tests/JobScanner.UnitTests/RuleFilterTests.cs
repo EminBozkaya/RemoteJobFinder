@@ -56,10 +56,10 @@ public sealed class RuleFilterTests
     }
 
     [Fact]
-    public void Required_keywords_do_NOT_eliminate_anymore()
+    public void Skills_are_not_an_elimination_rule()
     {
-        // Faz 5a: required keyword'ler eleyici değil (scoring sinyali). Eşleşmese bile geçer.
-        var result = Filter.Evaluate(Job(title: "Java Developer", description: "Spring Boot"), TestFactory.Profile(required: [".net", "c#"]));
+        // Yetkinlikler (skills) eleyici değil, scoring sinyali. Alakasız ilan bile eleme almaz.
+        var result = Filter.Evaluate(Job(title: "Java Developer", description: "Spring Boot"), TestFactory.Profile());
         Assert.Equal(FilterDecision.Pass, result.Decision);
     }
 

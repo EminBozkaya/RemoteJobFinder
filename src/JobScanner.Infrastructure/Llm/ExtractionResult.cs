@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using JobScanner.Domain.Eligibility;
 
 namespace JobScanner.Infrastructure.Llm;
 
@@ -17,4 +18,5 @@ internal sealed record ExtractionResult(
     [property: JsonPropertyName("timezoneRequirementRaw")] string? TimezoneRequirementRaw,
     [property: JsonPropertyName("isRecruiterAgency")] bool? IsRecruiterAgency,
     [property: JsonPropertyName("isLikelyGhost")] bool? IsLikelyGhost,
-    [property: JsonPropertyName("confidence")] double? Confidence);
+    [property: JsonPropertyName("confidence")] double? Confidence,
+    [property: JsonPropertyName("requiredExperience")] List<SkillRequirement>? RequiredExperience = null);

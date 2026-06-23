@@ -22,9 +22,10 @@ public sealed class EfProfileRepository : IProfileRepository
         if (profile is null) return false;
 
         profile.ResidenceCountry = edit.ResidenceCountry;
-        profile.RequiredKeywords = edit.RequiredKeywords;
         profile.ForbiddenKeywords = edit.ForbiddenKeywords;
-        profile.NiceKeywords = edit.NiceKeywords;
+        profile.Skills = edit.Skills;
+        profile.Languages = edit.Languages;
+        profile.SoftSkills = edit.SoftSkills;
         profile.TimezoneToleranceHours = edit.TimezoneToleranceHours;
         profile.MinScoreToShow = edit.MinScoreToShow;
 

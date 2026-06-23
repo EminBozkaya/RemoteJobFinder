@@ -18,8 +18,8 @@ public sealed class LlmOptions
     public string Model { get; init; } = "llama3.1";
     public string? ApiKey { get; init; }
 
-    /// <summary>Prompt sürümü (cache anahtarının parçası). Prompt değişince artır.</summary>
-    public string PromptVersion { get; init; } = "v4";
+    /// <summary>Prompt sürümü (cache anahtarının parçası). Prompt değişince artır. v5: requiredExperience.</summary>
+    public string PromptVersion { get; init; } = "v5";
 
     /// <summary>Materyal (CV + cover letter) üretimi prompt sürümü. Değişince saklı materyal tazelenir.</summary>
     public string MaterialPromptVersion { get; init; } = "v1";

@@ -22,7 +22,8 @@ internal static class TestFactory
         string? timezoneRequirementRaw = null,
         bool? isRecruiterAgency = null,
         bool? isLikelyGhost = null,
-        double confidence = 0.9) =>
+        double confidence = 0.9,
+        IReadOnlyList<SkillRequirement>? requiredExperience = null) =>
         new(
             JobId: 1, PromptVersion: "v1", ModelVersion: "test", VersionHash: "h",
             RequiresWorkAuth: requiresWorkAuth, RequiresRelocation: requiresRelocation,
@@ -32,13 +33,15 @@ internal static class TestFactory
             EngagementType: engagementType, MentionsEor: mentionsEor, EorPlatform: eorPlatform,
             DataBoundary: dataBoundary, TimezoneRequirementRaw: timezoneRequirementRaw,
             IsRecruiterAgency: isRecruiterAgency, IsLikelyGhost: isLikelyGhost,
-            Confidence: confidence, ExtractedAt: DateTimeOffset.UnixEpoch, RawJson: "{}");
+            Confidence: confidence, ExtractedAt: DateTimeOffset.UnixEpoch, RawJson: "{}",
+            RequiredExperience: requiredExperience);
 
     public static CriteriaProfile Profile(
         string residenceCountry = "TR",
-        IReadOnlyList<string>? required = null,
-        IReadOnlyList<string>? nice = null,
+        IReadOnlyList<SkillCriterion>? skills = null,
         IReadOnlyList<string>? forbidden = null,
+        IReadOnlyList<LanguageCriterion>? languages = null,
+        IReadOnlyList<string>? softSkills = null,
         IReadOnlyList<string>? contractTypes = null,
         int timezoneToleranceHours = 4) =>
         new()
@@ -47,9 +50,10 @@ internal static class TestFactory
             UserId = 1,
             Name = "Test",
             ResidenceCountry = residenceCountry,
-            RequiredKeywords = required ?? [],
-            NiceKeywords = nice ?? [],
+            Skills = skills ?? [],
             ForbiddenKeywords = forbidden ?? [],
+            Languages = languages ?? [],
+            SoftSkills = softSkills ?? [],
             ContractTypes = contractTypes ?? ["b2b", "contractor"],
             TimezoneToleranceHours = timezoneToleranceHours,
         };

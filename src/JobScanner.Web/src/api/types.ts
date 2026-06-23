@@ -25,23 +25,31 @@ export type MatchView = {
 
 export type MatchAction = 'save' | 'open' | 'apply' | 'dismiss'
 
-// Faz 5a: arayüzden düzenlenebilir kriter profili.
+// Faz 5b: arayüzden düzenlenebilir kriter profili (puanlı/yıllı yetkinlikler, diller, soft skill).
+export type LanguageLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Native'
+export const LANGUAGE_LEVELS: LanguageLevel[] = ['Beginner', 'Intermediate', 'Advanced', 'Native']
+
+export type Skill = { name: string; selfRating: number; years: number }
+export type Language = { name: string; level: LanguageLevel }
+
 export type Profile = {
   id: number
   name: string
   residenceCountry: string
-  requiredKeywords: string[]
   forbiddenKeywords: string[]
-  niceKeywords: string[]
+  skills: Skill[]
+  languages: Language[]
+  softSkills: string[]
   timezoneToleranceHours: number
   minScoreToShow: number
 }
 
 export type ProfileEdit = {
   residenceCountry: string
-  requiredKeywords: string[]
   forbiddenKeywords: string[]
-  niceKeywords: string[]
+  skills: Skill[]
+  languages: Language[]
+  softSkills: string[]
   timezoneToleranceHours: number
   minScoreToShow: number
 }

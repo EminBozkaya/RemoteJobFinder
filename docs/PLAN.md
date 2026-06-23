@@ -280,7 +280,8 @@ Final = Math.Clamp(Raw, 0, 10)
 > tazelenir. **Karar/puan hâlâ saf C#'tadır**; LLM yalnız gerçek-çıkarımı + materyal üretir, karar vermez.
 > Sistem materyali **göndermez**, yalnız hazırlar.
 
-> **Faz 5 — Dinamik/çok-rollü profil (planlandı).** `CriteriaProfile` zaten DB entity'si ve decider/scoring
+> **Faz 5 — Dinamik/çok-rollü profil.** *(5a + 5b uygulandı; 5c — AI terim-normalizasyonu + ağırlık
+> ayarı — opsiyonel/sonraki.)* `CriteriaProfile` zaten DB entity'si ve decider/scoring
 > onu okuyor; eksik olan **arayüzden düzenleme + model genişletme**. Bu, CLAUDE.md'deki "generic
 > Target/Operator rule-builder yapma" kuralını ihlal etmez — **yapılandırılmış profil editörü**
 > (checkbox / etiket girişi / seviye), generic kural-motoru değil.

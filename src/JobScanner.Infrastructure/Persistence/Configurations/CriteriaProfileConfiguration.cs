@@ -17,10 +17,20 @@ internal sealed class CriteriaProfileConfiguration : IEntityTypeConfiguration<Cr
         b.Property(x => x.ResidenceCountry).IsRequired().HasMaxLength(8);
         b.Property(x => x.SalaryCurrency).HasMaxLength(8);
 
-        ConfigureStringList(b, x => x.RequiredKeywords, "required_keywords");
         ConfigureStringList(b, x => x.ForbiddenKeywords, "forbidden_keywords");
-        ConfigureStringList(b, x => x.NiceKeywords, "nice_keywords");
         ConfigureStringList(b, x => x.ContractTypes, "contract_types");
+        ConfigureStringList(b, x => x.SoftSkills, "soft_skills");
+
+        // Faz 5b: puanlı/yıllı yetkinlikler ve diller (jsonb, record listesi)
+        var skills = b.Property(x => x.Skills)
+            .HasConversion(JsonListConverter.Converter<SkillCriterion>())
+            .HasColumnType("jsonb").HasColumnName("skills");
+        skills.Metadata.SetValueComparer(JsonListConverter.Comparer<SkillCriterion>());
+
+        var langs = b.Property(x => x.Languages)
+            .HasConversion(JsonListConverter.Converter<LanguageCriterion>())
+            .HasColumnType("jsonb").HasColumnName("languages");
+        langs.Metadata.SetValueComparer(JsonListConverter.Comparer<LanguageCriterion>());
 
         b.HasIndex(x => x.IsActive);
     }

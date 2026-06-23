@@ -93,15 +93,27 @@ public sealed class JobScanPipeline
 
             // 3. Dedup: New / Unchanged / Changed
             var dr = await _dedup.ClassifyAsync(job, ct);
+            JobPosting persisted;
             if (dr.Kind == DedupKind.Unchanged)
             {
                 await _jobs.TouchLastSeenAsync(job.SourceName, job.ExternalId, job.LastSeenAt, ct);
-                unchanged++;
-                continue; // pahalı işi ATLA
+                var existing = dr.Existing!;
+                // Faz 5b: içerik değişmese de PromptVersion/ModelVersion değiştiyse (cache'te güncel
+                // facts yoksa) ilanı yeniden çıkar — model/prompt yükseltmesi tüm ilanlara yansısın.
+                var cached = await _factsCache.GetAsync(
+                    existing.Id, _version.PromptVersion, _version.ModelVersion, existing.VersionHash, ct);
+                if (cached is not null)
+                {
+                    unchanged++;
+                    continue; // güncel facts var → pahalı işi ATLA
+                }
+                persisted = existing; // yeniden çıkarıma devam
             }
-
-            var persisted = await _jobs.UpsertAsync(job, ct);
-            newOrChanged++;
+            else
+            {
+                persisted = await _jobs.UpsertAsync(job, ct);
+                newOrChanged++;
+            }
 
             // 4. Ucuz tipli kural elemesi (profil bazlı; forbidden keyword'ler profilden gelir).
             //    Tüm aktif profiller eliyorsa pahalı extraction'a hiç girme.

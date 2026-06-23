@@ -27,9 +27,21 @@ internal static class DbSeeder
                     Name = "Senior .NET Remote",
                     WorkMode = WorkMode.Remote,
                     ResidenceCountry = "TR",
-                    RequiredKeywords = [".net", "c#"],
                     ForbiddenKeywords = ["php", "wordpress", "unpaid", "commission only"],
-                    NiceKeywords = ["react", "azure", "aws"],
+                    Skills =
+                    [
+                        new SkillCriterion("c#", 9, 6),
+                        new SkillCriterion(".net", 9, 6),
+                        new SkillCriterion("azure", 6, 3),
+                        new SkillCriterion("react", 6, 2),
+                        new SkillCriterion("aws", 5, 2),
+                    ],
+                    Languages =
+                    [
+                        new LanguageCriterion("English", LanguageLevel.Advanced),
+                        new LanguageCriterion("Turkish", LanguageLevel.Native),
+                    ],
+                    SoftSkills = ["communication", "teamwork"],
                     ContractTypes = ["b2b", "contractor"],
                     TimezoneToleranceHours = 4,
                     SalaryCurrency = "USD",

@@ -19,7 +19,6 @@ internal static class GoldSet
         Name = "TR B2B Contractor",
         ResidenceCountry = "TR",
         ContractTypes = ["b2b", "contractor"],
-        RequiredKeywords = [".net", "c#"],
         TimezoneToleranceHours = 4,
     };
 

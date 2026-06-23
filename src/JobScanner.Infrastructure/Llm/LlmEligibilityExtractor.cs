@@ -101,7 +101,18 @@ public sealed class LlmEligibilityExtractor : IEligibilityExtractor
             IsLikelyGhost: r.IsLikelyGhost,
             Confidence: Math.Clamp(r.Confidence ?? 0, 0, 1),
             ExtractedAt: _clock.GetUtcNow(),
-            RawJson: rawJson);
+            RawJson: rawJson,
+            RequiredExperience: NormalizeExperience(r.RequiredExperience));
+    }
+
+    private static IReadOnlyList<Domain.Eligibility.SkillRequirement>? NormalizeExperience(List<Domain.Eligibility.SkillRequirement>? items)
+    {
+        if (items is null) return null;
+        var cleaned = items
+            .Where(x => !string.IsNullOrWhiteSpace(x.Skill) && x.MinYears > 0)
+            .Select(x => new Domain.Eligibility.SkillRequirement(x.Skill.Trim(), Math.Clamp(x.MinYears, 1, 50)))
+            .ToList();
+        return cleaned.Count == 0 ? null : cleaned;
     }
 
     /// <summary>Yanıttaki ilk { ... } bloğunu çıkarır (markdown/çerçeve metnine toleranslı).</summary>

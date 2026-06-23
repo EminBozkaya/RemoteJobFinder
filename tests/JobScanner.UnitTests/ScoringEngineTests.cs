@@ -1,4 +1,6 @@
 using JobScanner.Application.Scoring;
+using JobScanner.Domain.Eligibility;
+using JobScanner.Domain.Users;
 
 namespace JobScanner.UnitTests;
 
@@ -51,21 +53,56 @@ public sealed class ScoringEngineTests
     }
 
     [Fact]
-    public void Required_keyword_in_title_boosts_match()
+    public void Skill_in_title_boosts_skillfit()
     {
         var job = TestFactory.Job(title: "Senior .NET Developer", description: "blah");
-        var score = _sut.Score(job, TestFactory.Facts(), TestFactory.Profile(required: [".net"]));
-        var match = score.Breakdown.Single(b => b.Criterion.StartsWith("MatchPercent")).Contribution;
-        Assert.True(match >= 5.0, $"match={match}"); // req tam → 1.0*5
+        var score = _sut.Score(job, TestFactory.Facts(), TestFactory.Profile(skills: [new SkillCriterion(".net", 10, 5)]));
+        var fit = score.Breakdown.Single(b => b.Criterion.StartsWith("SkillFit")).Contribution;
+        Assert.True(fit >= 5.0, $"skillfit={fit}"); // başlıkta tam → 1.0*5
     }
 
     [Fact]
-    public void Missing_required_keyword_lowers_match()
+    public void Missing_skill_lowers_skillfit()
     {
         var job = TestFactory.Job(title: "Java Developer", description: "Spring");
-        var score = _sut.Score(job, TestFactory.Facts(), TestFactory.Profile(required: [".net", "c#"]));
-        var match = score.Breakdown.Single(b => b.Criterion.StartsWith("MatchPercent")).Contribution;
-        Assert.Equal(0.0, match);
+        var score = _sut.Score(job, TestFactory.Facts(), TestFactory.Profile(skills: [new SkillCriterion(".net", 10, 5), new SkillCriterion("c#", 10, 5)]));
+        var fit = score.Breakdown.Single(b => b.Criterion.StartsWith("SkillFit")).Contribution;
+        Assert.Equal(0.0, fit);
+    }
+
+    [Fact]
+    public void Higher_self_rating_weighs_more()
+    {
+        // İlanda yalnız "c#" geçiyor. c# öz-puanı yüksekse SkillFit daha yüksek olmalı.
+        var job = TestFactory.Job(title: "C# Developer", description: "backend");
+        double Fit(int csharpRating) => _sut
+            .Score(job, TestFactory.Facts(), TestFactory.Profile(skills: [new SkillCriterion("c#", csharpRating, 5), new SkillCriterion("react", 5, 5)]))
+            .Breakdown.Single(b => b.Criterion.StartsWith("SkillFit")).Contribution;
+
+        Assert.True(Fit(10) > Fit(2), "yüksek öz-puanlı c# daha çok ağırlık taşımalı");
+    }
+
+    [Fact]
+    public void Experience_shortfall_applies_soft_penalty()
+    {
+        // İlan React min 3 yıl istiyor; kullanıcının 1 yılı var → ExperienceFit negatif (eleme değil).
+        var job = TestFactory.Job(title: "React Developer", description: "frontend");
+        var facts = TestFactory.Facts(requiredExperience: [new SkillRequirement("React", 3)]);
+        var profile = TestFactory.Profile(skills: [new SkillCriterion("React", 8, 1)]);
+
+        var exp = _sut.Score(job, facts, profile).Breakdown.Single(b => b.Criterion.StartsWith("ExperienceFit")).Contribution;
+        Assert.True(exp < 0, $"experienceFit={exp}");
+    }
+
+    [Fact]
+    public void No_experience_penalty_when_years_sufficient()
+    {
+        var job = TestFactory.Job(title: "React Developer", description: "frontend");
+        var facts = TestFactory.Facts(requiredExperience: [new SkillRequirement("React", 3)]);
+        var profile = TestFactory.Profile(skills: [new SkillCriterion("React", 8, 5)]); // 5 ≥ 3
+
+        var exp = _sut.Score(job, facts, profile).Breakdown.Single(b => b.Criterion.StartsWith("ExperienceFit")).Contribution;
+        Assert.Equal(0.0, exp);
     }
 
     [Fact]
@@ -74,7 +111,7 @@ public sealed class ScoringEngineTests
         var job = TestFactory.Job(postedAt: Now);
         var profile = TestFactory.Profile();
 
-        double Eng(JobScanner.Domain.Eligibility.EligibilityFacts f) =>
+        double Eng(EligibilityFacts f) =>
             _sut.Score(job, f, profile).Breakdown.Single(b => b.Criterion.StartsWith("EngagementFit")).Contribution;
 
         var eor = Eng(TestFactory.Facts(mentionsEor: true));
@@ -90,7 +127,7 @@ public sealed class ScoringEngineTests
     {
         var job = TestFactory.Job(title: "Senior .NET C# Developer", description: "react azure aws", postedAt: Now);
         var score = _sut.Score(job, TestFactory.Facts(timezoneRequirementRaw: "UTC+3"),
-            TestFactory.Profile(required: [".net", "c#"], nice: ["react", "azure", "aws"]));
+            TestFactory.Profile(skills: [new SkillCriterion(".net", 10, 5), new SkillCriterion("c#", 10, 5)]));
         Assert.InRange(score.Final, 0, 10);
     }
 }

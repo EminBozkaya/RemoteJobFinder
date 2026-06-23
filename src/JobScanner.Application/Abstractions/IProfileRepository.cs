@@ -2,12 +2,13 @@ using JobScanner.Domain.Users;
 
 namespace JobScanner.Application.Abstractions;
 
-/// <summary>Faz 5a: arayüzden düzenlenebilir kriter alanları (sadece sonucu etkileyenler).</summary>
+/// <summary>Arayüzden düzenlenebilir kriter alanları (5a + 5b: yetkinlik/dil/soft skill).</summary>
 public sealed record ProfileEdit(
     string ResidenceCountry,
-    IReadOnlyList<string> RequiredKeywords,
     IReadOnlyList<string> ForbiddenKeywords,
-    IReadOnlyList<string> NiceKeywords,
+    IReadOnlyList<SkillCriterion> Skills,
+    IReadOnlyList<LanguageCriterion> Languages,
+    IReadOnlyList<string> SoftSkills,
     int TimezoneToleranceHours,
     double MinScoreToShow);
 

@@ -17,9 +17,12 @@ public sealed class CriteriaProfile
     // Faz 5a: arayüzden düzenlenebilir alanlar (set). Değişince RecomputeService cache'ten yeniden hesaplar.
     public string ResidenceCountry { get; set; } = "TR";
 
-    public IReadOnlyList<string> RequiredKeywords { get; set; } = [];
     public IReadOnlyList<string> ForbiddenKeywords { get; set; } = [];
-    public IReadOnlyList<string> NiceKeywords { get; set; } = [];
+
+    // Faz 5b: puanlı/yıllı yetkinlikler (RequiredKeywords/NiceKeywords'ün yerini aldı), diller, soft skill'ler.
+    public IReadOnlyList<SkillCriterion> Skills { get; set; } = [];
+    public IReadOnlyList<LanguageCriterion> Languages { get; set; } = [];
+    public IReadOnlyList<string> SoftSkills { get; set; } = [];
 
     // 5b'ye ertelendi (henüz decider/scoring kullanmıyor): ContractTypes, Salary.
     public IReadOnlyList<string> ContractTypes { get; init; } = [];

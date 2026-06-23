@@ -40,7 +40,8 @@ public sealed class PromptRegistry
           "timezoneRequirementRaw": "..."|null,        // raw timezone/overlap requirement (e.g. "EST 9-5","CET overlap") or null
           "isRecruiterAgency": true|false|null,        // posting is by a recruiting agency rather than the actual employer
           "isLikelyGhost": true|false|null,            // true if the posting reads like an "evergreen" / ghost ad: explicit phrases like "always hiring", "talent pool", "future opportunities", no concrete team or requirements, very generic copy-paste JD; false if the JD is specific with concrete responsibilities; null if unclear
-          "confidence": 0.0                            // 0..1 your confidence in the extraction
+          "confidence": 0.0,                           // 0..1 your confidence in the extraction
+          "requiredExperience": [{"skill":"React","minYears":3}]  // explicit minimum YEARS-of-experience requirements per skill/technology stated in the JD (e.g. "3+ years of React", "5 years SQL"). Use [] if no explicit year requirement is stated. Only include skills with an explicit numeric year minimum.
         }
 
         CRITICAL: Use null when the posting does NOT state a fact. Do NOT infer false from silence —
