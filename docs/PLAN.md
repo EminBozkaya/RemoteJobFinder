@@ -174,28 +174,33 @@ public async Task RunAsync(CancellationToken ct)
 
 ## 6. Eleme & Karar Mantığı
 
-- **Ucuz kademe (RuleFilter, tipli):** `WorkMode != Remote` → ele; `ForbiddenKeywords` (başlık/açıklama, FTS) → ele; net coğrafi tuzaklar (regex). Belirsizler → `NeedsExtraction`.
+- **Ucuz kademe (RuleFilter, tipli):** `WorkMode != Remote` → ele; profilin `ForbiddenKeywords`'ü (başlık/açıklama) → ele; kalanlar → extraction. *(Yetkinlik eşleşmesi eleyici değil, puan sinyalidir.)*
 - **Fact extraction (LLM):** yalnız kural elemesinden geçenler; yapılandırılmış JSON döner (bkz. `EligibilityFacts`). **Karar vermez.**
 - **Karar (C# `IEligibilityDecider`, profil bazında):**
-  - Sert eleyiciler: `RequiresWorkAuth==true` (ve TR izin yoksa) · `RequiresCitizenship` · `AllowedCountries` TR içermiyor · `DataBoundary` AB. → `Ineligible`.
-  - **EOR düzeltmesi (YZ4):** `MentionsEor` tek başına **eleyici değil**. `EngagementType==EmployeeViaEor` bilgi/yumuşak; `Contractor/B2B/platform ödemesi` → uygun. Yalnız yukarıdaki sert şartlar eler.
+  - Sert eleyiciler: `RequiresWorkAuth==true` (ve TR izin yoksa) · `RequiresCitizenship` · `RequiresRelocation` · yabancı-ülke adli sicil şartı · `AllowedCountries` TR içermiyor · `DataBoundary` AB. → `Ineligible`.
+  - **EOR (Faz 2 kalibrasyonu):** eleyici değil, **pozitif sinyal** — `MentionsEor` / `EngagementType==EmployeeViaEor` puanda en yüksek `EngagementFit`'i alır (şirket gerektirmez); `Contractor/B2B` → uygun. Yalnız yukarıdaki sert şartlar eler.
   - `Confidence` düşük veya çelişki → `Uncertain` (kullanıcıya "kontrol et" etiketiyle gösterilir).
 
 > Faydası: kriter değişince cache çöpe gitmez — gerçek aynı, sadece C# kararı yeniden hesaplanır. Token harcanmaz.
 
 ---
 
-## 7. Puanlama (başlangıç formülü — YZ4)
+## 7. Puanlama (güncel formül — Faz 5b)
 
 ```
-TimezoneFit (0-3): UTC+3'e fark 0-2s = 3 | 3-4s = 1.5 | 5s+ = 0   (kullanıcı toleransına göre, facts'teki ham gereksinimden hesaplanır)
-Freshness  (0-2): yarı-ömür ~7 gün
-MatchPercent: profilin must/nice/negative keyword eşleşmesi (başlık ağırlıklı + alias'lar)
-Raw   = MatchPercent*5 + TimezoneFit + Freshness
+SkillFit      (0-1): profildeki yetkinliklerin ilanda görünmesi, öz-puanla (1-10) ağırlıklı
+                     (başlıkta 1.0, gövdede 0.6). Yetkinlik tanımlı değilse 1.0 (kısıt yok).
+TimezoneFit   (0-3): UTC+3'e fark ≤ tolerans = 3 | ≤ tolerans+2s = 1.5 | üstü = 0; kısıt yoksa 3
+Freshness     (0-2): yarı-ömür ~7 gün
+EngagementFit (0-1): EOR / EmployeeViaEor = 1.0 | B2B / Contractor / Freelance = 0.4 | diğer = 0
+ExperienceFit (-2..0): ilan "X için min N yıl" istiyor ve kullanıcının yılı azsa yumuşak ceza (eleme değil)
+Raw   = SkillFit*5 + TimezoneFit + Freshness + EngagementFit + ExperienceFit
 Final = Math.Clamp(Raw, 0, 10)
 ```
 
-**Açıklanabilirlik:** her kriterin katkısı `ScoreBreakdownJson`'a yazılır (UI + kalibrasyon). ML yok; ağırlıklı toplam.
+**Açıklanabilirlik:** her bileşenin katkısı `ScoreBreakdownJson`'a yazılır (UI + kalibrasyon). ML yok; ağırlıklı toplam.
+Kaynak: `Application/Scoring/ScoringEngine.cs`. *(İlk formül keyword tabanlı `MatchPercent` idi; Faz 5b'de
+yerini `SkillFit` + `ExperienceFit` aldı, Faz 2 kalibrasyonunda `EngagementFit` eklendi.)*
 
 ---
 
@@ -210,29 +215,28 @@ Final = Math.Clamp(Raw, 0, 10)
 
 ## 9. Konfigürasyon (tipli + versiyonlu)
 
+`src/JobScanner.Worker/appsettings.json` (özet — güncel hâli dosyada):
+
 ```jsonc
 {
-  "Pipeline": { "IntervalHours": 8 },
-  "Sources": { "Jobicy": { "Enabled": true, "Tags": [".net","c#","react"], "Count": 50 } },
-  "Profiles": [{
-    "Name": "Senior .NET Remote",
-    "WorkMode": "Remote",
-    "ResidenceCountry": "TR",
-    "RequiredKeywords": [".net","c#"],
-    "ForbiddenKeywords": ["php","wordpress","unpaid","commission only"],
-    "ContractTypes": ["b2b","contractor"],
-    "TimezoneToleranceHours": 4,
-    "SalaryMin": null, "SalaryCurrency": "USD",
-    "MinScoreToShow": 5.0
-  }],
-  "Llm": { "Provider": "ollama|anthropic|openai", "Endpoint": "http://localhost:11434",
-           "Model": "...", "PromptVersion": "v1", "MaxCallsPerRun": 50, "MaxTokens": 400 },
-  "FeatureFlags": { "ExtractionV2": false }
+  "Pipeline": { "IntervalHours": 8, "MaxDegreeOfParallelism": 4, "RunOnce": false,
+                "MaxLlmCallsPerRun": 100, "Tags": [".net","c#","react"], "Geo": "", "Count": 50 },
+  "Decider":  { "MinConfidence": 0.4 },
+  "Llm":      { "Enabled": true, "Provider": "ollama", "Endpoint": "http://localhost:11434",
+                "Model": "llama3.1", "PromptVersion": "v5", "MaxOutputTokens": 900 },
+  "Sources":  { "Jobicy": { "Enabled": true }, "RemoteOK": { "Enabled": true }, "WeWorkRemotely": { "Enabled": true },
+                "Remotive": { "Enabled": true }, "Arbeitnow": { "Enabled": true } },
+  "Cv":       { "Path": "data/cv.md" }
 }
 ```
 
-`Provider` `IChatClient` factory'sini seçer (OllamaChatClient / OpenAIChatClient / Anthropic). Prompt'lar
-**modele göre varyantlı** (Prompt Registry) + toleranslı JSON parse (regex fallback).
+**Kriter profili config'de değil, DB'dedir** (`CriteriaProfile`): ilk açılışta `DbSeeder` tek profil seed eder,
+sonrası arayüzden (Profil sayfası → `PUT /profile/{id}`) düzenlenir; kayıt sonrası `RecomputeService` cache'teki
+gerçeklerden token harcamadan yeniden karar/puan üretir. Alanlar: `ResidenceCountry`, `ForbiddenKeywords`,
+`Skills {Name, SelfRating, Years}`, `Languages {Name, Level}`, `SoftSkills`, `TimezoneToleranceHours`, `MinScoreToShow`.
+
+`Provider` `IChatClient` factory'sini seçer (`ChatClientFactory`; şu an yalnız **Ollama** bağlı — OpenAI/Anthropic
+için paket + bir `case`). Prompt'lar `PromptRegistry`'de sürümlü + toleranslı JSON parse.
 
 ---
 
@@ -247,10 +251,12 @@ Final = Math.Clamp(Raw, 0, 10)
 
 ## 11. Dağıtım (Docker)
 
-- `docker-compose.yml`: `postgres` (+ ileride `redis`) + `worker` (Faz 3'te `api`, statik `web`).
-- Secret'lar **env var**: `ConnectionStrings__Db`, `Llm__ApiKey` (bulut sağlayıcıda), vb.
-- Lokal kullanım = `docker compose up`; teknik kullanıcı hedefli (bilinçli karar).
-- Worker kendi içinde zamanlanır (~8 saat); container ayakta kalır.
+- `deploy/docker-compose.yml`: yalnız `postgres` — **lokal geliştirme** (Worker/Api/Web `dotnet run` / `npm run dev`).
+- `deploy/docker-compose.full.yml`: **tam yığın** — `postgres` + `ollama` + `worker` + `api` + `web` (nginx; SPA'yı
+  servis eder, `/api`'yi Api'ye proxy'ler). Sunucu (Oracle VM) kurulumu bununla; adımlar `docs/REHBER.md` §10.
+- Secret'lar **env var** (`deploy/.env`, repoya girmez): `POSTGRES_PASSWORD`, `JOBSCANNER_API_TOKEN`, …
+- Dışarıya yalnız `web` portu açılır; Postgres/Ollama/Api iç ağda kalır. Public erişimde `JOBSCANNER_API_TOKEN` zorunlu tutulur.
+- Worker kendi içinde zamanlanır (~8 saat); container ayakta kalır. Migration'ı Worker açılışta uygular.
 
 ---
 
@@ -273,6 +279,8 @@ Final = Math.Clamp(Raw, 0, 10)
 | **4 — Materyal üretimi** | İlana özel cover letter + uyarlanmış CV üretimi (on-demand, SPA butonu). |
 | **5 — Dinamik/çok-rollü profil** | Kriter profilini arayüzden düzenlenebilir + dinamik yapmak (bugün .NET, yarın Java). |
 | **6 — Otomatik/yarı-otomatik başvuru** | Oracle VM'de 7/24, 3×/gün; bot ilana gidip materyalle başvuruyu hazırlar/gönderir. **En son.** |
+
+> **Durum (v0.6.0):** Faz 1–4 + 5a + 5b **tamam**. Sırada: sunucuya kurulum (§11) → opsiyonel 5c → Faz 6.
 
 > **Faz 4 uygulandı (on-demand).** `IApplicationMaterialGenerator` (LLM, `IChatClient`) ana CV'den
 > (`data/cv.md`) ilana özel cover letter + uyarlanmış CV üretir; dil ilan diline uyar. Materyal
