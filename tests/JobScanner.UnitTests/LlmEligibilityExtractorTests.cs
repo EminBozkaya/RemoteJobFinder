@@ -63,6 +63,67 @@ public sealed class LlmEligibilityExtractorTests
     }
 
     [Fact]
+    public async Task Tolerates_null_minYears_in_requiredExperience()
+    {
+        // llama3.1 gercek ciktisi: minYears null gelebiliyor. Tum extraction dusmemeli,
+        // yalnizca gecersiz oge atilmali.
+        var json = """
+        {"engagementType":"B2B","confidence":0.7,
+         "requiredExperience":[{"skill":"React","minYears":3},
+                               {"skill":"Kubernetes","minYears":null},
+                               {"skill":null,"minYears":5},
+                               {"skill":"  ","minYears":2},
+                               {"skill":"Go","minYears":0}]}
+        """;
+        var facts = await Build(json).ExtractAsync(TestFactory.Job(), CancellationToken.None);
+
+        var req = Assert.Single(facts.RequiredExperience!);
+        Assert.Equal("React", req.Skill);
+        Assert.Equal(3, req.MinYears);
+    }
+
+    [Fact]
+    public async Task Tolerates_missing_minYears_field_and_string_numbers()
+    {
+        var json = """
+        {"engagementType":"B2B","confidence":"0.6",
+         "requiredExperience":[{"skill":"Azure"},{"skill":"C#","minYears":"4"}]}
+        """;
+        var facts = await Build(json).ExtractAsync(TestFactory.Job(), CancellationToken.None);
+
+        Assert.Equal(0.6, facts.Confidence, 3);
+        var req = Assert.Single(facts.RequiredExperience!);
+        Assert.Equal("C#", req.Skill);
+        Assert.Equal(4, req.MinYears);
+    }
+
+    [Fact]
+    public async Task Tolerates_decimal_and_suffixed_minYears()
+    {
+        var json = """
+        {"engagementType":"B2B","requiredExperience":[{"skill":"A","minYears":2.5},{"skill":"B","minYears":"5+"},{"skill":"C","minYears":"many"}]}
+        """;
+        var facts = await Build(json).ExtractAsync(TestFactory.Job(), CancellationToken.None);
+        Assert.Equal(new[] { 3, 5 }, facts.RequiredExperience!.Select(r => r.MinYears).ToArray());
+    }
+
+    [Fact]
+    public async Task RequiredExperience_is_null_when_all_items_invalid()
+    {
+        var json = """{"engagementType":"B2B","requiredExperience":[{"skill":"X","minYears":null}]}""";
+        var facts = await Build(json).ExtractAsync(TestFactory.Job(), CancellationToken.None);
+        Assert.Null(facts.RequiredExperience);
+    }
+
+    [Fact]
+    public async Task Clamps_minYears_to_upper_bound()
+    {
+        var json = """{"engagementType":"B2B","requiredExperience":[{"skill":"COBOL","minYears":120}]}""";
+        var facts = await Build(json).ExtractAsync(TestFactory.Job(), CancellationToken.None);
+        Assert.Equal(50, Assert.Single(facts.RequiredExperience!).MinYears);
+    }
+
+    [Fact]
     public async Task Throws_when_no_json_present()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(

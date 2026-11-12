@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using JobScanner.Application.Abstractions;
 using JobScanner.Domain.Eligibility;
 using JobScanner.Domain.Enums;
@@ -15,7 +16,12 @@ namespace JobScanner.Infrastructure.Llm;
 /// </summary>
 public sealed class LlmEligibilityExtractor : IEligibilityExtractor
 {
-    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+    };
 
     private readonly IChatClient _chat;
     private readonly IExtractionVersion _version;
@@ -105,12 +111,16 @@ public sealed class LlmEligibilityExtractor : IEligibilityExtractor
             RequiredExperience: NormalizeExperience(r.RequiredExperience));
     }
 
-    private static IReadOnlyList<Domain.Eligibility.SkillRequirement>? NormalizeExperience(List<Domain.Eligibility.SkillRequirement>? items)
+    /// <summary>
+    /// Ham requiredExperience ogelerini temizler. LLM eksik/null skill ya da minYears
+    /// gonderebilir; bu ogeler sessizce atilir (toleranslı parse), tum extraction duşmez.
+    /// </summary>
+    private static IReadOnlyList<Domain.Eligibility.SkillRequirement>? NormalizeExperience(List<SkillRequirementDto>? items)
     {
         if (items is null) return null;
         var cleaned = items
-            .Where(x => !string.IsNullOrWhiteSpace(x.Skill) && x.MinYears > 0)
-            .Select(x => new Domain.Eligibility.SkillRequirement(x.Skill.Trim(), Math.Clamp(x.MinYears, 1, 50)))
+            .Where(x => x is not null && !string.IsNullOrWhiteSpace(x.Skill) && x.ParsedMinYears() is > 0)
+            .Select(x => new Domain.Eligibility.SkillRequirement(x.Skill!.Trim(), Math.Clamp(x.ParsedMinYears()!.Value, 1, 50)))
             .ToList();
         return cleaned.Count == 0 ? null : cleaned;
     }
