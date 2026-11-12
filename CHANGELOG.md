@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.7.1...v0.8.0) (2026-11-12)
+
+
+### Features
+
+* LLM circuit breaker and EF sentinel fix ([8a68618](https://github.com/EminBozkaya/RemoteJobFinder/commit/8a68618ff91fde8789e216459820e9bcffa6ad7f))
+
 ## [0.7.1](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.7.0...v0.7.1) (2026-11-12)
 
 
