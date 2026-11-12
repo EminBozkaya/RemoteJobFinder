@@ -86,6 +86,7 @@ public sealed class JobScanPipeline
         var activeProfiles = await _profiles.GetActiveAsync(ct);
 
         int newOrChanged = 0, unchanged = 0, eliminated = 0, extracted = 0, matched = 0, extractionErrors = 0, llmCalls = 0, deadLinks = 0;
+        var breaker = new ExtractionCircuitBreaker(_options.MaxConsecutiveExtractionErrors);
 
         foreach (var job in normalized)
         {
@@ -142,6 +143,9 @@ public sealed class JobScanPipeline
 
             if (facts is null)
             {
+                // Devre kesici açıksa: ilan upsert edildi (dedup/arşiv normal sürer), extraction sonraki run'a.
+                if (breaker.IsOpen) continue;
+
                 if (llmCalls >= _options.MaxLlmCallsPerRun)
                 {
                     _log.LogInformation("MaxLlmCallsPerRun ({Max}) doldu; kalan ilanların çıkarımı sonraki run'a kaldı", _options.MaxLlmCallsPerRun);
@@ -152,11 +156,18 @@ public sealed class JobScanPipeline
                 {
                     facts = await ExtractAndCacheAsync(persisted, ct);
                     llmCalls++;
+                    breaker.RecordSuccess();
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     extractionErrors++;
                     _log.LogError(ex, "İlan {JobId} için fact extraction başarısız; bu ilan atlanıyor", persisted.Id);
+                    if (breaker.RecordFailure())
+                    {
+                        _log.LogWarning(
+                            "Üst üste {Max} extraction hatası: LLM erişilemiyor gibi; kalan ilanlar sonraki taramaya kaldı",
+                            _options.MaxConsecutiveExtractionErrors);
+                    }
                     continue;
                 }
             }
@@ -191,10 +202,10 @@ public sealed class JobScanPipeline
         var archivedJobs = await _jobs.ArchiveStaleAsync(staleSince, ct);
         var expiredMatches = archivedJobs > 0 ? await _matches.ExpireOpenMatchesForArchivedJobsAsync(ct) : 0;
 
-        var metrics = new RunMetrics(raw.Count, newOrChanged, unchanged, eliminated, extracted, matched, sourceErrors, extractionErrors, archivedJobs, expiredMatches, deadLinks);
+        var metrics = new RunMetrics(raw.Count, newOrChanged, unchanged, eliminated, extracted, matched, sourceErrors, extractionErrors, archivedJobs, expiredMatches, deadLinks, breaker.IsOpen);
         _log.LogInformation(
-            "Run metrics: fetched={Fetched} new+changed={NewOrChanged} unchanged={Unchanged} eliminated={Eliminated} extracted={Extracted} matches={Matches} sourceErrors={SourceErrors} extractionErrors={ExtractionErrors} archived={ArchivedJobs} expired={ExpiredMatches} deadLinks={DeadLinks}",
-            metrics.Fetched, metrics.NewOrChanged, metrics.Unchanged, metrics.Eliminated, metrics.Extracted, metrics.Matches, metrics.SourceErrors, metrics.ExtractionErrors, metrics.ArchivedJobs, metrics.ExpiredMatches, metrics.DeadLinks);
+            "Run metrics: fetched={Fetched} new+changed={NewOrChanged} unchanged={Unchanged} eliminated={Eliminated} extracted={Extracted} matches={Matches} sourceErrors={SourceErrors} extractionErrors={ExtractionErrors} archived={ArchivedJobs} expired={ExpiredMatches} deadLinks={DeadLinks} extractionHalted={ExtractionHalted}",
+            metrics.Fetched, metrics.NewOrChanged, metrics.Unchanged, metrics.Eliminated, metrics.Extracted, metrics.Matches, metrics.SourceErrors, metrics.ExtractionErrors, metrics.ArchivedJobs, metrics.ExpiredMatches, metrics.DeadLinks, metrics.ExtractionHalted);
 
         return metrics;
     }

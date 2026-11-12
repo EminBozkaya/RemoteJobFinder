@@ -14,6 +14,12 @@ public sealed class PipelineOptions
     /// <summary>Bir run'da yapılacak azami LLM extraction çağrısı (token/maliyet koruması).</summary>
     public int MaxLlmCallsPerRun { get; init; } = 50;
 
+    /// <summary>
+    /// Bir run'da üst üste bu kadar extraction hatası olursa o run'da extraction durdurulur
+    /// (LLM erişilemiyor/model yok varsayımı; devre kesici). 0 = kapalı.
+    /// </summary>
+    public int MaxConsecutiveExtractionErrors { get; init; } = 5;
+
     /// <summary>Bu kadar gündür görülmeyen ilan arşivlenir; açık eşleşmeleri Expired olur.</summary>
     public int StaleAfterDays { get; init; } = 30;
 
