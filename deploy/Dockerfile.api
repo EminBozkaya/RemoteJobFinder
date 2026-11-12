@@ -1,0 +1,25 @@
+# JobScanner.Api — build context: repo kökü
+#   docker build -f deploy/Dockerfile.api -t jobscanner-api .
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Önce yalnız proje dosyaları → restore katmanı kod değişiminde cache'ten gelir.
+COPY Directory.Build.props ./
+COPY src/JobScanner.Domain/JobScanner.Domain.csproj                 src/JobScanner.Domain/
+COPY src/JobScanner.Application/JobScanner.Application.csproj       src/JobScanner.Application/
+COPY src/JobScanner.Infrastructure/JobScanner.Infrastructure.csproj src/JobScanner.Infrastructure/
+COPY src/JobScanner.Api/JobScanner.Api.csproj                 src/JobScanner.Api/
+RUN dotnet restore src/JobScanner.Api/JobScanner.Api.csproj
+
+COPY src/JobScanner.Domain/         src/JobScanner.Domain/
+COPY src/JobScanner.Application/    src/JobScanner.Application/
+COPY src/JobScanner.Infrastructure/ src/JobScanner.Infrastructure/
+COPY src/JobScanner.Api/         src/JobScanner.Api/
+RUN dotnet publish src/JobScanner.Api/JobScanner.Api.csproj -c Release -o /app --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=build /app ./
+EXPOSE 8080
+USER $APP_UID
+ENTRYPOINT ["dotnet", "JobScanner.Api.dll"]
