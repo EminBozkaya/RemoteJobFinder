@@ -7,7 +7,7 @@ Türkiye'de yaşayan bir B2B/contractor/EOR adayı için **tam remote** iş ilan
 - Karar/puan **saf C#'ta** hesaplanır: kriter değişince token harcanmadan yeniden hesap.
 - Veri yalnız **yapılandırılmış API'lerden** gelir; **web scraping yok**.
 
-📖 Tam mimari ve plan: [`docs/PLAN.md`](docs/PLAN.md) · 📌 Çalışma kuralları: [`CLAUDE.md`](CLAUDE.md)
+📖 Tam mimari ve plan: [`docs/PLAN.md`](docs/PLAN.md) · 🧭 Çalışma rehberi: [`docs/REHBER.md`](docs/REHBER.md) · 📌 Çalışma kuralları: [`CLAUDE.md`](CLAUDE.md)
 
 ---
 
@@ -22,9 +22,9 @@ Worker / Api  →  Infrastructure  →  Application  →  Domain
 - **JobScanner.Application** — portlar (interface) + `JobScanPipeline` + saf is mantığı
   (RuleFilter, EligibilityDecider, ScoringEngine)
 - **JobScanner.Infrastructure** — EF Core(Npgsql), `IJobSource` adaptörleri
-  (Jobicy/RemoteOK/WeWorkRemotely), LLM (`IChatClient`)
+  (Jobicy/RemoteOK/WeWorkRemotely/Remotive/Arbeitnow), LLM (`IChatClient`)
 - **JobScanner.Worker** — arka plan tarayıcı host'u (8 saatte bir varsayılan)
-- **JobScanner.Api** — read-only `GET /matches` + durum makinesi mutasyonları
+- **JobScanner.Api** — `GET /matches` + durum makinesi mutasyonları + materyal üretimi + profil düzenleme
 - **JobScanner.Web** — React SPA (Vite + Tailwind + shadcn-style)
 
 ---
@@ -80,7 +80,7 @@ dotnet run --project src/JobScanner.Worker
 İlk açılışta:
 - DB migration uygulanır
 - Seed user + profil oluşur (`local@jobscanner.dev`)
-- Tarama başlar (Jobicy + RemoteOK + WWR'den ilan çeker, LLM ile gerçek çıkarır)
+- Tarama başlar (5 kaynaktan ilan çeker, LLM ile gerçek çıkarır)
 
 > İlk run ~5-10 dk sürer (CPU'da LLM extraction). Sonraki run'larda cache + dedup sayesinde
 > sadece yeni/değişen ilanlar işlenir.
@@ -111,19 +111,12 @@ butonları durum makinesini tetikler.
 Tüm ayarlar `src/JobScanner.Worker/appsettings.json` üzerinden (Worker), API kendi
 `src/JobScanner.Api/appsettings.json`'unu kullanır.
 
-### Kriter profili (seed)
+### Kriter profili
 
-İlk açılışta tek profil seed edilir (`src/JobScanner.Worker/DbSeeder.cs`). Kendi
-kriterlerin için DB'de güncelle veya seeder'ı düzenle:
-
-```json
-{
-  "ResidenceCountry": "TR",
-  "RequiredKeywords": [".net", "c#"],
-  "ForbiddenKeywords": ["php", "wordpress"],
-  "TimezoneToleranceHours": 4
-}
-```
+İlk açılışta tek profil seed edilir (`src/JobScanner.Worker/DbSeeder.cs`). Sonrasında panelin
+**Profil** sayfasından düzenlenir: ikamet ülkesi, yasaklı kelimeler, **yetkinlikler** (ad + öz-puan 1–10 +
+yıl), **diller** (ad + seviye), soft skill'ler, saat dilimi toleransı, gösterim için minimum skor.
+Kaydedince eşleşmeler cache'teki gerçeklerden **token harcamadan** yeniden hesaplanır.
 
 ### LLM sağlayıcı
 
@@ -133,7 +126,7 @@ kriterlerin için DB'de güncelle veya seeder'ı düzenle:
   "Provider": "ollama",
   "Endpoint": "http://localhost:11434",
   "Model": "llama3.1",
-  "PromptVersion": "v3"
+  "PromptVersion": "v5"
 }
 ```
 
@@ -172,10 +165,25 @@ Endpoint'ler: `GET|POST /matches/{profileId}/{jobId}/materials` (`?force=true` i
 
 ---
 
+## Docker ile tam yığın (sunucu kurulumu)
+
+Postgres + Ollama + Worker + Api + Web tek komutla:
+
+```bash
+cp deploy/.env.example deploy/.env        # şifre + token üret, doldur
+docker compose -f deploy/docker-compose.full.yml --env-file deploy/.env up -d --build
+docker compose -f deploy/docker-compose.full.yml exec ollama ollama pull llama3.1   # ilk sefer
+# → http://SUNUCU:8080
+```
+
+Ayrıntı ve sorun giderme: [`docs/REHBER.md`](docs/REHBER.md) §10.
+
+---
+
 ## Public deploy & güvenlik
 
 JobScanner.Api'yi Oracle VM / VPS gibi internete açık bir yerde çalıştırıyorsan
-**bearer token koruması** aç:
+**bearer token koruması** aç (Docker kurulumunda `deploy/.env` → `JOBSCANNER_API_TOKEN`):
 
 ```bash
 export JOBSCANNER_API_TOKEN=$(openssl rand -hex 32)
@@ -200,11 +208,11 @@ Token set değilse middleware OFF (lokal dev'i etkilemez).
 dotnet test
 ```
 
-123+ unit/gold-set test:
+~127 unit/gold-set test (+ SPA için `npm test`):
 - Domain: durum makinesi geçişleri (Save/Open/Apply/Dismiss/Expire)
 - Application: RuleFilter, EligibilityDecider, ScoringEngine, TimezoneParser
 - Infrastructure: Normalizer, RSS parse, LLM JSON parse (fake `IChatClient`)
-- GoldSet: ~25 etiketli senaryo ile karar mantığı regresyonu
+- GoldSet: ~29 etiketli senaryo ile karar mantığı regresyonu
 
 ---
 
@@ -221,6 +229,11 @@ dotnet test
 | 3.4 — SPA | React + Tailwind + shadcn | ✅ |
 | 3 — Ghost-job & Liveness | Block G legitimacy sinyalleri + HEAD liveness gate | ✅ |
 | 4 — Materyal üretimi | İlana özel cover letter + uyarlanmış CV (on-demand) | ✅ |
+| 5a — Profil editörü | Arayüzden düzenlenebilir kriter profili + anında recompute | ✅ |
+| 5b — Yetkinlik/dil/tecrübe | Öz-puanlı yetkinlikler, diller, ilandan tecrübe yılı çıkarımı (prompt v5) | ✅ |
+| Dağıtım | Tam yığın Docker compose (`deploy/docker-compose.full.yml`) → Oracle VM | 🚧 |
+| 5c — Normalizasyon/ağırlık | AI terim normalizasyonu + puan ağırlıklarını kullanıcıya açma (opsiyonel) | ⏳ |
+| 6 — Yarı-otomatik başvuru | Bot materyalle başvuruyu hazırlar, kullanıcı onaylar | ⏳ |
 
 ---
 

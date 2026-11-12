@@ -162,7 +162,7 @@ hangi argüman/eşik). Spine: `JobScanner.Application/Pipeline/JobScanPipeline.R
 - **[Sonuç]** Worker başlatılır → DB hazırlanır → tarama başlar.
 - **[Arka plan]** `Worker/ScannerHostedService.ExecuteAsync` → `InitializeDatabaseAsync`
   (`db.Database.MigrateAsync` + `DbSeeder.SeedAsync` → seed profil `local@jobscanner.dev`,
-  kriterler: ResidenceCountry=`TR`, RequiredKeywords, MinScoreToShow=5.0) → `RunScanAsync` →
+  kriterler: ResidenceCountry=`TR`, Skills, Languages, ForbiddenKeywords, MinScoreToShow=5.0) → `RunScanAsync` →
   `JobScanPipeline.RunAsync(ct)`.
 
 ### Adım 1 — Kaynaklardan çekme (paralel)
@@ -205,8 +205,8 @@ hangi argüman/eşik). Spine: `JobScanner.Application/Pipeline/JobScanPipeline.R
   - `WorkMode != Remote` → **Eliminate**
   - `haystack = Title + "\n" + DescriptionText`; **ForbiddenKeywords** (`php`, `wordpress`, `unpaid`,
     `commission only`) içeriyorsa → **Eliminate**
-  - **RequiredKeywords** tanımlı ve hiçbiri yoksa → **Eliminate**
-  - aksi halde **Pass**. (Eşleşme: `Contains`, `OrdinalIgnoreCase`.)
+  - aksi halde **Pass**. (Eşleşme: `Contains`, `OrdinalIgnoreCase`.) Yasaklı kelimeler **profilden** gelir;
+    yetkinlik eşleşmesi eleyici değildir, puana (SkillFit) yansır.
 
 ### Adım 4.5 — Liveness gate (ölü link)
 - **[Sonuç]** Linki ölmüş ilanlara LLM harcanmaz; arşivlenir.
@@ -219,10 +219,10 @@ hangi argüman/eşik). Spine: `JobScanner.Application/Pipeline/JobScanPipeline.R
   **cache varsa LLM çağrısı YOK.** Yoksa:
   - `llmCalls >= MaxLlmCallsPerRun` (**100**) → `break` (kalan ilanlar sonraki run'a).
   - `Infrastructure/Llm/LlmEligibilityExtractor.ExtractAsync(job)` → **Ollama `IChatClient`**, prompt
-    **v4**, `Temperature=0`, `ResponseFormat=Json` → `EligibilityFacts`:
+    **v5**, `Temperature=0`, `ResponseFormat=Json` → `EligibilityFacts`:
     `RequiresWorkAuth, RequiresRelocation, BackgroundCheckCountry, AllowedCountries, RequiresCitizenship,
     AllowsB2BContractor, EngagementType, MentionsEor, EorPlatform, DataBoundary, TimezoneRequirementRaw,
-    IsRecruiterAgency, IsLikelyGhost, Confidence`.
+    IsRecruiterAgency, IsLikelyGhost, RequiredExperience, Confidence`.
   - `IFactsCache.SetAsync(facts)` → cache'e yaz. Hata → `extractionErrors++`, ilanı atla (run düşmez).
 
 ### Adım 5.5 — Legitimacy (ghost-job tespiti, saf C#)
@@ -283,3 +283,43 @@ hangi argüman/eşik). Spine: `JobScanner.Application/Pipeline/JobScanPipeline.R
   üretir, saklar. Tazeleme: `SourceCvHash + PromptVersion + ModelVersion + JobVersionHash`.
 - **Başvuru:** Sistem göndermez; "Kaynağa git" ilanın `ApplyUrl`/`Url`'üne yönlendirir, sen gerçek
   platformda başvurursun.
+
+---
+
+## 10. Sunucuya kurulum (Docker — tam yığın)
+
+`deploy/docker-compose.full.yml` beş servisi birlikte kaldırır; **dışarıya yalnız `web` portu açılır.**
+
+| Servis | İmaj | Görev |
+|---|---|---|
+| `postgres` | postgres:17-alpine | Veri deposu (iç ağ; port yayınlanmaz) |
+| `ollama` | ollama/ollama | Lokal LLM (iç ağ); model `ollama-data` volume'unda kalır |
+| `worker` | `deploy/Dockerfile.worker` | 8 saatte bir tarama; açılışta migration + seed |
+| `api` | `deploy/Dockerfile.api` | HTTP servis (iç ağ, :8080); `data/` klasörünü salt-okunur bağlar (CV) |
+| `web` | `deploy/Dockerfile.web` | nginx: SPA + `/api` → `api:8080` proxy; `WEB_PORT` (varsayılan 8080) |
+
+### Adımlar (Oracle VM / herhangi bir Linux sunucu)
+```bash
+git clone https://github.com/EminBozkaya/RemoteJobFinder.git && cd RemoteJobFinder
+
+cp deploy/.env.example deploy/.env
+# deploy/.env içinde: POSTGRES_PASSWORD ve JOBSCANNER_API_TOKEN değerlerini üret (openssl rand -hex 32)
+
+cp data/cv.md.example data/cv.md      # kendi CV'nle doldur (materyal üretimi için; opsiyonel)
+
+docker compose -f deploy/docker-compose.full.yml --env-file deploy/.env up -d --build
+docker compose -f deploy/docker-compose.full.yml exec ollama ollama pull llama3.1    # ilk sefer, ~5 GB
+docker compose -f deploy/docker-compose.full.yml restart worker                      # model inince ilk taramayı başlat
+```
+Panel: `http://SUNUCU_IP:8080`. İlk girişte tarayıcı konsolunda bir kez:
+`localStorage.setItem('jobscanner_token', '<JOBSCANNER_API_TOKEN>')`.
+
+### Bilmen gerekenler
+- **Podman:** aynı dosya `podman compose` ile de çalışır.
+- **Oracle VM (ARM / Ampere):** tüm imajlar arm64 destekli. CPU'da `llama3.1` ilan başına ~30–90 sn sürebilir;
+  ilk tarama uzun sürer, sonrakiler dedup + cache sayesinde kısa. RAM dar gelirse `.env` → `LLM_MODEL` ile daha küçük model seç.
+- **Güvenlik:** `JOBSCANNER_API_TOKEN` boş bırakılırsa compose **başlamaz** (bilinçli). HTTPS için önüne
+  Caddy / Cloudflare Tunnel koy; portu Oracle güvenlik listesinde yalnız kendi IP'ne açmak en basiti.
+- **Loglar:** `docker compose -f deploy/docker-compose.full.yml logs -f worker` → her tarama sonunda metrik satırı.
+- **Güncelleme:** `git pull && docker compose -f deploy/docker-compose.full.yml --env-file deploy/.env up -d --build`.
+- **Yedek:** `docker compose -f deploy/docker-compose.full.yml exec postgres pg_dump -U jobscanner jobscanner > yedek.sql`.

@@ -1,0 +1,13 @@
+.git
+.github
+.vs
+.idea
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/TestResults
+data
+deploy/.env
+deploy/.volumes
+*.md

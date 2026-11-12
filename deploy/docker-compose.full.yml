@@ -1,0 +1,87 @@
+# Tam yığın: postgres + ollama + worker + api + web. Sunucu (Oracle VM) kurulumu için.
+# Lokal geliştirmede yalnız DB gerekiyorsa: deploy/docker-compose.yml
+#
+#   cp deploy/.env.example deploy/.env    # doldur
+#   docker compose -f deploy/docker-compose.full.yml --env-file deploy/.env up -d --build
+#   docker compose -f deploy/docker-compose.full.yml exec ollama ollama pull llama3.1
+#
+# Dışarıya yalnız web portu açılır; diğer servisler iç ağda kalır.
+name: jobscanner
+
+x-db-conn: &db-conn
+  ConnectionStrings__Db: "Host=postgres;Port=5432;Database=jobscanner;Username=jobscanner;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD deploy/.env icinde tanimli olmali}"
+
+x-llm: &llm
+  Llm__Enabled: "true"
+  Llm__Provider: ollama
+  Llm__Endpoint: http://ollama:11434
+  Llm__Model: ${LLM_MODEL:-llama3.1}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jobscanner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD deploy/.env icinde tanimli olmali}
+      POSTGRES_DB: jobscanner
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobscanner -d jobscanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    environment:
+      <<: [*db-conn, *llm]
+      Pipeline__IntervalHours: ${SCAN_INTERVAL_HOURS:-8}
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Migration'ı Worker uygular; Api ondan sonra başlasın.
+      worker:
+        condition: service_started
+    environment:
+      <<: [*db-conn, *llm]
+      JOBSCANNER_API_TOKEN: ${JOBSCANNER_API_TOKEN:?JOBSCANNER_API_TOKEN deploy/.env icinde tanimli olmali}
+      Cv__Path: /app/data/cv.md
+    volumes:
+      # Ana CV (data/cv.md) — kişisel veri, imaja girmez; salt-okunur bağlanır.
+      - ../data:/app/data:ro
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  ollama-data:

@@ -8,11 +8,14 @@ Türkiye'de yaşayan bir B2B contractor için **tam remote** iş ilanlarını AP
 gerçekten başvurulabilir olanları eleyip puanlayan bir sistem. Detay: `docs/PLAN.md`.
 
 ## Şu anki faz
-**Faz 2 — Zekâ + durum.** Faz 1 (çekirdek) tamam. Faz 2: gerçek LLM `IEligibilityExtractor`
-(Ollama default, `IChatClient` ile sağlayıcı-bağımsız, cache + gold-set), saf C#
-`IEligibilityDecider` + `ScoringEngine`, `UserJobMatch` durum makinesi + ilan yaşam döngüsü
-(arşiv/Expired), ve **minimal read-only HTTP endpoint** (`JobScanner.Api`, `GET /matches`).
-React SPA + auth + apply/dismiss hâlâ **Faz 3** (kapsam dışı). Kapsam: `docs/PLAN.md` §13.
+**Faz 1–5b tamam (v0.6.0).** Çalışan sistem: 5 kaynak (Jobicy, RemoteOK, WWR, Remotive, Arbeitnow) →
+dedup → RuleFilter → liveness → LLM fact extraction (prompt v5, cache'li) → saf C# karar + puan →
+`JobScanner.Api` + React SPA (`JobScanner.Web`): eşleşme listesi, durum makinesi, materyal üretimi (Faz 4),
+arayüzden düzenlenebilir kriter profili + anında recompute (Faz 5a), yetkinlik/dil/tecrübe (Faz 5b).
+
+**Sıradaki iş:** sunucuya kurulum (Docker: `deploy/docker-compose.full.yml`, Oracle VM) → sonra
+opsiyonel **Faz 5c** (AI terim normalizasyonu + ağırlık ayarı) → en son **Faz 6** (yarı-otomatik başvuru).
+Kapsam ve faz detayları: `docs/PLAN.md` §13. Yeni faza başlamadan önce PLAN'daki ilgili bölümü oku.
 
 ## Mutlak kurallar (ASLA ihlal etme)
 - **Clean Architecture**, bağımlılık içe doğru: `Worker/Api → Infrastructure → Application → Domain`. Domain'in dış bağımlılığı yoktur.
@@ -23,9 +26,9 @@ React SPA + auth + apply/dismiss hâlâ **Faz 3** (kapsam dışı). Kapsam: `doc
 - İlan kimliği = `(SourceName, ExternalId)` + `IdentityKey`; içerik değişimi `VersionHash` ile. **Tüm-içerik hash'ini kimlik olarak kullanma.**
 - Cache **ham çıkarılmış gerçekleri** tutar, anahtar `JobId + PromptVersion + ModelVersion + VersionHash`. **Kararı/verdict'i cache'leme.**
 - LLM erişimi **Microsoft.Extensions.AI `IChatClient`** üzerinden (sağlayıcı-bağımsız). Tek sağlayıcıyı hard-code etme.
-- **Telegram yok**, Faz 1-2'de **web UI yok.** `INotifier` arayüzü olabilir, implementasyonu olmaz.
-- Başvuru = kaynağa yönlendirme (`ApplyUrl`/`Url`). Sistem **başvuru göndermez.**
-- Kriterler şimdilik **güçlü-tipli config alanları.** Dinamik Target/Operator kriter UI'ı **yapma.**
+- **Telegram yok.** Tek yüzey web paneli (`JobScanner.Web`). `INotifier` arayüzü olabilir, implementasyonu olmaz.
+- Başvuru = kaynağa yönlendirme (`ApplyUrl`/`Url`). Sistem **başvuru göndermez** (Faz 6 gelene kadar; o da kullanıcı onaylı yarı-otomatik).
+- Kriterler **güçlü-tipli alanlar** (`CriteriaProfile`; DB'de, arayüzden yapılandırılmış editörle düzenlenir). Generic Target/Operator kural-motoru UI'ı **yapma.**
 - Dayanıklılık: **paralel fetch + kaynak başına try-catch + Polly**; toleranslı JSON deserialization (bilinmeyen alanları yok say). Bir kaynak patlayınca run çökmez.
 - Versiyonlama: `PromptVersion` + `ModelVersion` sakla; gold-set testlerini yeşil tut.
 
@@ -59,7 +62,7 @@ Polly · xUnit. `<Nullable>enable</Nullable>`, en güncel C#. (İleride: Microso
 - `feat`/`fix` etiketini doğru seç (sürüm artışını etkiler). Geçmiş commit'leri yeniden yazma.
 
 ## Çözüm yapısı
-`docs/PLAN.md` §3. Özet: `src/{Domain, Application, Infrastructure, Worker}` (+ ileride `Api`, `Web`), `tests/`, `deploy/`.
+`docs/PLAN.md` §3. Özet: `src/{Domain, Application, Infrastructure, Worker, Api, Web}`, `tests/{UnitTests, GoldSetTests}`, `deploy/`.
 
 ## Komutlar
 ```bash
@@ -67,17 +70,24 @@ Polly · xUnit. `<Nullable>enable</Nullable>`, en güncel C#. (İleride: Microso
 dotnet build
 dotnet test
 
-# Worker'ı çalıştır
+# Worker'ı çalıştır (tek tarama: Pipeline__RunOnce=true)
 dotnet run --project src/JobScanner.Worker
+
+# API (:5163) + SPA (:5173)
+dotnet run --project src/JobScanner.Api
+cd src/JobScanner.Web && npm run dev      # test: npm test · build: npm run build
 
 # EF Core migration
 dotnet ef migrations add <Name> -p src/JobScanner.Infrastructure -s src/JobScanner.Worker
 dotnet ef database update    -p src/JobScanner.Infrastructure -s src/JobScanner.Worker
 
-# Lokal Postgres
+# Lokal Postgres (yalnız DB)
 docker compose -f deploy/docker-compose.yml up -d
+
+# Tam yığın (postgres + ollama + worker + api + web) — sunucu kurulumu, bkz. docs/REHBER.md §10
+docker compose -f deploy/docker-compose.full.yml --env-file deploy/.env up -d --build
 ```
 Secret'lar (DB connection, LLM api key) env var / `dotnet user-secrets` ile; repo'ya girmez.
 
-## Faz 1 kabul kontrolü
-Worker'ı **iki kez** çalıştır → ikinci sefer hiçbir ilan yeniden işlenmemeli (dedup doğrulaması). Sonuçlar Postgres'te + metrikler logda.
+## Kabul kontrolü (her pipeline değişikliğinden sonra)
+`dotnet test` yeşil (unit + gold-set). Worker'ı **iki kez** çalıştır → ikinci sefer hiçbir ilan yeniden işlenmemeli (dedup doğrulaması). Sonuçlar Postgres'te + metrikler logda.
