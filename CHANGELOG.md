@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.7.0...v0.7.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* tolerate null/odd minYears in LLM requiredExperience ([a3cfa59](https://github.com/EminBozkaya/RemoteJobFinder/commit/a3cfa599d2b63955b3171c8913d71724eb4d78ee))
+
 ## [0.7.0](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.6.0...v0.7.0) (2026-11-12)
 
 
