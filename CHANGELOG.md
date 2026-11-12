@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.6.0...v0.7.0) (2026-11-12)
+
+
+### Features
+
+* full-stack docker compose deployment ([1f1b706](https://github.com/EminBozkaya/RemoteJobFinder/commit/1f1b7069823dde787e9305b8d9cba153636d21ab))
+
+
+### Documentation
+
+* sync docs with v0.6.0 + feat: full-stack docker deployment ([d8dcd69](https://github.com/EminBozkaya/RemoteJobFinder/commit/d8dcd69a48639beafea70f06f3e49fbc12267003))
+* sync docs with v0.6.0 state ([db23898](https://github.com/EminBozkaya/RemoteJobFinder/commit/db23898b3a386475f115e8f4f9a31e67068bf42f))
+
 ## [0.6.0](https://github.com/EminBozkaya/RemoteJobFinder/compare/v0.5.0...v0.6.0) (2026-06-23)
 
 
