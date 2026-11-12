@@ -1,5 +1,5 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using JobScanner.Domain.Eligibility;
 
 namespace JobScanner.Infrastructure.Llm;
 
@@ -19,4 +19,29 @@ internal sealed record ExtractionResult(
     [property: JsonPropertyName("isRecruiterAgency")] bool? IsRecruiterAgency,
     [property: JsonPropertyName("isLikelyGhost")] bool? IsLikelyGhost,
     [property: JsonPropertyName("confidence")] double? Confidence,
-    [property: JsonPropertyName("requiredExperience")] List<SkillRequirement>? RequiredExperience = null);
+    [property: JsonPropertyName("requiredExperience")] List<SkillRequirementDto>? RequiredExperience = null);
+
+/// <summary>
+/// requiredExperience ogesinin HAM karsiligi. LLM alanlari atlayabilir ya da null gonderebilir,
+/// bu yuzden her ikisi de nullable; temizlik/filtreleme LlmEligibilityExtractor.NormalizeExperience'da yapilir.
+/// </summary>
+internal sealed record SkillRequirementDto(
+    [property: JsonPropertyName("skill")] string? Skill,
+    [property: JsonPropertyName("minYears")] JsonElement? MinYears)
+{
+    /// <summary>minYears'i toleransla int'e cevirir: 3, 2.5, "4", "5+" kabul; null/anlamsiz → null.</summary>
+    public int? ParsedMinYears()
+    {
+        if (MinYears is not { } e) return null;
+        if (e.ValueKind == JsonValueKind.Number && e.TryGetDouble(out var d)) return ToYears(d);
+        if (e.ValueKind == JsonValueKind.String)
+        {
+            var digits = new string((e.GetString() ?? "").TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+            if (double.TryParse(digits, System.Globalization.CultureInfo.InvariantCulture, out var v)) return ToYears(v);
+        }
+        return null;
+    }
+
+    private static int? ToYears(double d) =>
+        double.IsNaN(d) || double.IsInfinity(d) ? null : (int)Math.Clamp(Math.Ceiling(d), 0, 1000);
+}
