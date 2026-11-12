@@ -1,3 +1,4 @@
+using JobScanner.Domain.Enums;
 using JobScanner.Domain.Matching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,7 +14,11 @@ internal sealed class UserJobMatchConfiguration : IEntityTypeConfiguration<UserJ
 
         b.Property(x => x.Decision).HasConversion<string>().HasMaxLength(32);
         b.Property(x => x.State).HasConversion<string>().HasMaxLength(32);
-        b.Property(x => x.Legitimacy).HasConversion<string>().HasMaxLength(32).HasDefaultValueSql("'High'");
+        b.Property(x => x.Legitimacy).HasConversion<string>().HasMaxLength(32)
+            .HasDefaultValueSql("'High'")
+            // High = CLR default(0); sentinel enum dışı bir değer olmalı, yoksa EF "High" atamasını
+            // "değer verilmedi" sanıp DB default'una bırakır (ve model doğrulama uyarısı verir).
+            .HasSentinel((LegitimacyConfidence)(-1));
         b.Property(x => x.LegitimacySignalsJson).HasColumnType("jsonb").HasDefaultValue("[]");
         b.Property(x => x.ScoreBreakdownJson).HasColumnType("jsonb").HasDefaultValue("[]");
         b.Property(x => x.DecisionReasonsJson).HasColumnType("jsonb").HasDefaultValue("[]");

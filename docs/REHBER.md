@@ -99,6 +99,9 @@ Worker iki modda çalışabilir, `appsettings.json → Pipeline` ile ayarlı:
 - **`MaxLlmCallsPerRun = 100`:** Bir taramada en fazla 100 LLM çağrısı (maliyet/süre koruması; ücretsiz
   lokal Ollama için yüksek tutuldu). Daha çok yeni ilan varsa kalanı **sonraki taramada** işlenir —
   dedup+cache sayesinde hiçbir ilan kalıcı olarak atlanmaz.
+- **`MaxConsecutiveExtractionErrors = 5` (devre kesici):** Bir taramada üst üste 5 extraction hatası olursa
+  (Ollama kapalı / model inmemiş gibi) o taramada extraction durur, tek WARN yazılır, metrikte
+  `extractionHalted=true` olur; fetch/dedup/arşiv sürer, kalan ilanlar sonraki taramaya kalır. Başarılı çağrı sayacı sıfırlar; `0` = kapalı.
 - **Durum makinesi:** Her eşleşme `New → Saved/Opened → Applied/Dismissed`. İlan arşivlenirse açık
   eşleşmeler `Expired` olur. Durum **beyana dayalı** (sistem başvuruyu doğrulayamaz).
 - **Liveness gate:** İlan URL'sine HTTP HEAD atılır; ölü/erişilemez linkler elenir.

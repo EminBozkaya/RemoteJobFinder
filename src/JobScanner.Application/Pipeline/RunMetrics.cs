@@ -12,4 +12,5 @@ public sealed record RunMetrics(
     int ExtractionErrors = 0,
     int ArchivedJobs = 0,
     int ExpiredMatches = 0,
-    int DeadLinks = 0);
+    int DeadLinks = 0,
+    bool ExtractionHalted = false);
